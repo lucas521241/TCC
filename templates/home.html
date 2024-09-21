@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Docsnaipa - Home</title>
+</head>
+<body>
+    <div class="toolbar">
+        <a href="/">Home</a>
+        <a href="/minhas-tarefas">Minhas Tarefas</a>
+        <a href="/meu-portal">Meu Portal</a>
+        <input type="text" placeholder="Pesquisar documentos..." class="search">
+    </div>
+    <div class="banner">
+        <h1>Bem-vindo ao Docsnaipa</h1>
+    </div>
+    <input type="text" placeholder="Pesquisar documento" class="search">
+
+    <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
+</body>
+</html>

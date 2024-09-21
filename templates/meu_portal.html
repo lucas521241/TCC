@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Docsnaipa - Meu Portal</title>
+</head>
+<body>
+    <div class="toolbar">
+        <a href="/">Home</a>
+        <a href="/minhas-tarefas">Minhas Tarefas</a>
+        <a href="/meu-portal">Meu Portal</a>
+        <input type="text" placeholder="Pesquisar documentos...">
+    </div>
+    <h1>Meu Portal</h1>
+    <p>Aqui você pode iniciar novos workflows.</p>
+    
+    <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
+</body>
+</html>

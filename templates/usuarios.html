@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>Docsnaipa - Usuários</title>
+</head>
+<body>
+    <div class="toolbar">
+        <a href="/">Home</a>
+        <a href="/minhas-tarefas">Minhas Tarefas</a>
+        <a href="/meu-portal">Meu Portal</a>
+        <input type="text" placeholder="Pesquisar documentos...">
+    </div>
+    <h1>Gerenciar Usuários</h1>
+    <ul>
+        <li>Usuário 1 <button>Excluir</button></li>
+        <li>Usuário 2 <button>Excluir</button></li>
+        <li>Usuário 3 <button>Excluir</button></li>
+    </ul>
+    <button>Cadastrar Novo Usuário</button>
+<script src="{{ url_for('static', filename='js/animations.js') }}"></script>
+</body>
+</html>
