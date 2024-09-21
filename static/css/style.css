@@ -6,25 +6,73 @@ body {
     padding: 0;
 }
 
+.search-toolbar-container {
+    position: relative;
+    display: inline-block;
+}
+
+.search-toolbar {
+    padding: 10px 40px 10px 15px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    width: 200px;
+}
+
+.icon-search-toolbar {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+}
+
+.search-container {
+    display: flex;
+    justify-content: center;  
+    align-items: center;      
+    height: 30vh;           
+    margin: 0;
+    
+}
+
+.search:focus {
+    border-color: #007bff;    
+}
+
+.icon-search {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 18px;
+    color: #999;
+}
+
+.icon-search::before {
+    content: '\f002';     
+    font-family: "Font Awesome 5 Free"; 
+    font-weight: 900;
+}
+
 .toolbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
     background-color: #007bff;
-    padding: 15px;
+    padding: 5px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .toolbar a {
     color: white;
     text-decoration: none;
-    margin: 0 15px;
+    margin: 0 5px;
     font-weight: bold;
     transition: color 0.3s;
 }
 
 .toolbar a:hover {
-    color: #ffcc00; 
+    color: #0056b3; 
 }
 
 .toolbar input[type="text"] {
@@ -35,11 +83,13 @@ body {
 }
 
 input[type="text"] {
-    padding: 10px;
+    padding: 15px;
+    width: 300px;
     border: 1px solid #ccc;
     border-radius: 20px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     transition: border-color 0.3s;
+    font-size: 16px;
 }
 
 input[type="text"]:focus {
@@ -116,8 +166,6 @@ input {
 input:focus {
     border-color: #007bff; 
 }
-
-
 
 .banner {
     background-image: url('sua-imagem-de-fundo.jpg'); /* Adicione uma imagem de fundo */

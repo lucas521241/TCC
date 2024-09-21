@@ -1,21 +1,29 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" id="app-config">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
     <title>Docsnaipa - Configurações</title>
 </head>
 <body>
     <div class="toolbar">
-        <a href="/">Home</a>
+        <a href="/home">Home</a>
         <a href="/minhas-tarefas">Minhas Tarefas</a>
         <a href="/meu-portal">Meu Portal</a>
-        <input type="text" placeholder="Pesquisar documentos...">
+        <form id="search-form" action="/pesquisa_documentos" method="get" class="search-toolbar-container" @submit.prevent="submitSearch">
+            <input type="text" placeholder="Pesquisar documentos..." class="search-toolbar" name="document" @keypress="handleKeyPress">
+            <span class="icon-search-toolbar" @click="submitSearch"><i class="fas fa-search"></i></span>
+        </form>
+        
     </div>
     <h1>Configurações</h1>
     <p>Aqui você pode gerenciar as configurações do sistema.</p>
     <a href="/configuracoes/usuarios">Gerenciar Usuários</a>
-<script src="{{ url_for('static', filename='js/animations.js') }}"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <script src="{{ url_for('static', filename='js/search.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
 </body>
 </html>

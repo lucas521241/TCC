@@ -6,9 +6,10 @@ app = Flask(__name__)
 # Configurações de conexão ao MySQL
 mydb_config = {
     'host': "127.0.0.1",        # Nome do servidor ou IP
+    'port': "3306",             # Porta do MySQL
     'user': "root",             # Usuário MySQL
     'password': "root",         # Senha MySQL
-    'database': "docsnaipa" # Nome do banco de dados
+    'database': "docsnaipa"     # Nome do banco de dados
 }
 
 
@@ -60,12 +61,14 @@ def meu_portal():
 # Rota para a pesquisa de documentos
 @app.route('/pesquisa-documentos')
 def pesquisa_documentos():
+    query = request.args.get('document')
     conn = connect_to_db()
     if conn:
+        print("Conexão ativa, realizando consulta...")
         try:
             # Criar um cursor e realizar consulta no banco de dados
             mycursor = conn.cursor()
-            mycursor.execute("SELECT * FROM dcdocument")
+            mycursor.execute("SELECT iddocument, nmdocument FROM dcdocument WHERE iddocument = %s OR nmdocument LIKE %s """, (query, '%' + query + '%'))
             resultados = mycursor.fetchall()
 
             # Fechar o cursor
@@ -82,6 +85,7 @@ def pesquisa_documentos():
             conn.close()
             print("Conexão com o MySQL foi encerrada.")
     else:
+        print("Falha na conexão com o banco de dados.")
         return "Erro ao conectar ao banco de dados."
 
 
