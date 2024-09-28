@@ -15,7 +15,7 @@ A escolha do GED como tema de projeto foi baseada em:
 2. **Revisão de documentos**: Workflow de aprovação, histórico de alterações e controle de status.
 3. **Cancelamento de documentos**: Justificativas e processo de cancelamento de documentos obsoletos.
 4. **Controle de status**: Acompanhamento em tempo real dos status dos documentos (emitido, em revisão, aprovado, cancelado).
-5. **Pesquisa de documentos**: Busca avançada utilizando Elasticsearch com filtros por tipo, data, status e palavras-chave.
+5. **Pesquisa de documentos**: Busca avançada utilizando Elasticsearch com filtros por categoria, data, status e palavras-chave.
 
 ## Tecnologias Utilizadas
 
@@ -43,7 +43,7 @@ O desenvolvimento foi dividido nas seguintes fases:
 ## Recursos Necessários
 
 - **Hardware**: Computador com processador Intel Core i5 ou superior, 8GB de RAM e 50GB de espaço em disco.
-- **Software**: Python 3.9+, Flask, ReactJS, MySQL Workbench, Elasticsearch.
+- **Software**: Python 3.9+, Flask, VueJS, MySQL Workbench, Elasticsearch.
 
 ## Considerações Finais
 
