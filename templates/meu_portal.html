@@ -12,14 +12,33 @@
         <a href="/home">Home</a>
         <a href="/minhas-tarefas">Minhas Tarefas</a>
         <a href="/meu-portal">Meu Portal</a>
-        <form id="search-form" action="/pesquisa_documentos" method="get" class="search-toolbar-container" @submit.prevent="submitSearch">
-            <input type="text" placeholder="Pesquisar documentos..." class="search-toolbar" name="document" @keypress="handleKeyPress">
-            <span class="icon-search-toolbar" @click="submitSearch"><i class="fas fa-search"></i></span>
+        <form id="search-form" action="/pesquisa-documentos" method="get" class="search-toolbar-container">
+            <input type="text" placeholder="Pesquisar documentos..." class="search-toolbar" name="document">
+            <span class="icon-search-toolbar"><i class="fas fa-search"></i></span>
         </form>
-        
     </div>
     <h1>Meu Portal</h1>
-    <p>Aqui você pode iniciar novos workflows.</p>
+    <p>Inserir documentos no Elasticsearch.</p>
+
+    <!-- Formulário para inserção no Elasticsearch -->
+    <form action="/inserir-documento" method="POST">
+        <label for="identificador">Identificador:</label>
+        <input type="text" id="identificador" name="identificador" required>
+
+        <label for="categoria">Categoria:</label>
+        <input type="text" id="categoria" name="categoria" required>
+
+        <label for="autor">Autor:</label>
+        <input type="text" id="autor" name="autor" required>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required>
+
+        <label for="skills">Skills (separadas por vírgula):</label>
+        <input type="text" id="skills" name="skills" required>
+
+        <button type="submit">Inserir Documento</button>
+    </form>
     
     <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
     <script src="{{ url_for('static', filename='js/search.js') }}"></script>
