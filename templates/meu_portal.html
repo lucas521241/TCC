@@ -17,31 +17,34 @@
             <span class="icon-search-toolbar"><i class="fas fa-search"></i></span>
         </form>
     </div>
-    <h1>Meu Portal</h1>
-    <p>Inserir documentos no Elasticsearch.</p>
-
-    <!-- Formulário para inserção no Elasticsearch -->
-    <form action="/inserir-documento" method="POST">
-        <label for="identificador">Identificador:</label>
-        <input type="text" id="identificador" name="identificador" required>
-
-        <label for="categoria">Categoria:</label>
-        <input type="text" id="categoria" name="categoria" required>
-
-        <label for="autor">Autor:</label>
-        <input type="text" id="autor" name="autor" required>
-
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required>
-
-        <label for="skills">Skills (separadas por vírgula):</label>
-        <input type="text" id="skills" name="skills" required>
-
-        <button type="submit">Inserir Documento</button>
-    </form>
     
-    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
-    <script src="{{ url_for('static', filename='js/search.js') }}"></script>
+    <h1>Meu Portal</h1>
+    <p>Criar Documento.</p>
+    
+    <!-- Botão para abrir o formulário de criação de documento -->
+    <button id="create-document-btn">Iniciar Criação de Documento</button>
+
+<!-- Formulário oculto inicialmente -->
+<form id="document-form" action="/inserir-documento" method="POST" class="hidden-form">
+    <label for="identificador">Identificador:</label>
+    <input type="text" id="identificador" name="identificador" required>
+
+    <label for="nome-documento">Nome do Documento:</label>
+    <input type="text" id="nome-documento" name="nome_documento" required>
+
+    <label for="categoria">Categoria:</label>
+    <select id="categoria" name="categoria" required>
+        {% for categoria in categorias %}
+            <option value="{{ categoria.IDCATEGORY }}">{{ categoria.NAME }}</option>
+        {% endfor %}
+    </select>
+
+    <!-- O autor será automaticamente preenchido com o nome do usuário logado -->
+    <input type="hidden" id="autor" name="autor" value="{{ current_user.NAME_USER }}">
+
+    <button type="submit">Enviar para Aprovação</button>
+</form>
+
     <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
 </body>
 </html>

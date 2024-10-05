@@ -1,0 +1,9 @@
+Flask
+Flask-CORS
+mysql-connector-python
+elasticsearch
+gunicorn
+python-dotenv
+bcrypt
+requests
+secrets

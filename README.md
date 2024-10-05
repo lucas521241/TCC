@@ -27,7 +27,7 @@ A escolha do GED como tema de projeto foi baseada em:
 ## Arquitetura
 
 O sistema é dividido em três principais componentes:
-- **Interface do usuário**: Interface amigável desenvolvida em ReactJS.
+- **Interface do usuário**: Interface amigável desenvolvida em HTML + CSS e vueJS/JavaScript.
 - **API RESTful**: Desenvolvida com Python/Flask, responsável por gerenciar documentos, usuários e permissões.
 - **Banco de dados**: Utiliza MySQL para armazenar os documentos e metadados, com suporte ao Elasticsearch para indexação de documentos.
 
@@ -42,8 +42,21 @@ O desenvolvimento foi dividido nas seguintes fases:
 
 ## Recursos Necessários
 
-- **Hardware**: Computador com processador Intel Core i5 ou superior, 8GB de RAM e 50GB de espaço em disco.
+- **Hardware**: Computador com processador Intel Core i3 ou superior, 8GB de RAM e 50GB de espaço em disco.
 - **Software**: Python 3.9+, Flask, VueJS, MySQL Workbench, Elasticsearch.
+
+## Dependências
+
+- **requirements.txt**: Para executar o projeto, você precisa ter instalado as dependências que estão no requirements.txt do projeto. Para isso, digite: pip install -r requirements.txt
+- **ElasticSearch**: Para Certifique-se de que o Elasticsearch está instalado e em execução localmente na porta 9200.
+- **JDBC Driver**: O projeto utiliza o driver JDBC para conectar ao MySQL. Você deve ter o mysql-connector-java instalado. A configuração está no arquivo: mysql_to_elasticsearch.conf
+- **Logstash**: Para realizar a integração entre o MySQL e o Elasticsearch, você precisará do Logstash. A configuração está no arquivo: mysql_to_elasticsearch.conf
+
+## Inicializar projeto
+
+1. **Inicializar o MYSQL**: Incializar o servidor no MYSQL workbench
+2. **Inicializar Aplicação Flask**: python app.py
+3. **Inicializar Aplicação**: python app.py
 
 ## Considerações Finais
 

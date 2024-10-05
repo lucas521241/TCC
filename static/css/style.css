@@ -75,27 +75,6 @@ body {
     color: #0056b3; 
 }
 
-.toolbar input[type="text"] {
-    padding: 5px;
-    border: none;
-    border-radius: 5px;
-    margin-left: auto;
-}
-
-input[type="text"] {
-    padding: 15px;
-    width: 300px;
-    border: 1px solid #ccc;
-    border-radius: 20px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    transition: border-color 0.3s;
-    font-size: 16px;
-}
-
-input[type="text"]:focus {
-    border-color: #007bff; 
-}
-
 h1 {
     text-align: center;
     color: #007bff;
@@ -149,6 +128,34 @@ button:active {
     background-color: #f4f4f4;
 }
 
+
+input[type="text"],
+input[type="password"],
+input[type="login-submit"] {
+    padding: 15px;
+    width: 300px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: border-color 0.3s;
+    font-size: 16px;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus {
+    border-color: #007bff;
+}
+
+input[type="login-submit"] {
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+}
+
+input[type="login-submit"]:hover {
+    background-color: #0056b3;
+}
+
 form {
     display: flex;
     flex-direction: column;
@@ -174,4 +181,37 @@ input:focus {
     color: white;
     text-align: center;
     padding: 50px 0;
+}
+
+.hidden-form {
+    display: none;
+    transition: opacity 0.3s ease;
+    opacity: 0;
+}
+
+form.show-form {
+    display: flex;
+    flex-direction: column;
+    margin: 20px 0;
+    opacity: 1;
+}
+
+button#create-document-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.3s;
+    margin-top: 20px;
+}
+
+button#create-document-btn:hover {
+    background-color: #0056b3;
+    transform: scale(1.05);
+}
+
+button#create-document-btn:active {
+    transform: scale(0.95);
 }
