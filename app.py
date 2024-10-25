@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_login import LoginManager, login_user, current_user, login_required, UserMixin
 from elasticsearch import Elasticsearch
 from datetime import datetime
 import mysql.connector
@@ -12,6 +13,12 @@ import requests
 import secrets
 
 app = Flask(__name__)
+
+
+# Configurar o Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'  # Rota de login
 
 # Verifica se já existe uma secret key
 if not os.getenv('FLASK_SECRET_KEY'):
@@ -81,17 +88,11 @@ def initialize_elasticsearch():
 # Rota inicial do portal
 @app.route('/meu-portal')
 def meu_portal():
-    global es
-
-    # Iniciar o Elasticsearch, se não estiver iniciado
-    if es is None:
-        start_elasticsearch()
-        initialize_elasticsearch()
-
     # Conectar ao banco de dados
     conn = connect_to_db()
     if conn is None:
         return "Erro ao conectar ao banco de dados."
+    
     cursor = conn.cursor(dictionary=True)
 
     # Buscar categorias existentes no banco de dados
@@ -109,8 +110,6 @@ def meu_portal():
 @app.route('/inserir-documento', methods=['POST'])
 def inserir_documento():
     global es
-
-    # Iniciar o Elasticsearch, se não estiver iniciado
     if es is None:
         start_elasticsearch()
         initialize_elasticsearch()
@@ -119,8 +118,6 @@ def inserir_documento():
     nome_documento = request.form['nome_documento']
     categoria = request.form['categoria']
     autor = request.form['autor']
-
-    # Criando documento
     doc = {
         'identificador': identificador,
         'nome_documento': nome_documento,
@@ -129,7 +126,7 @@ def inserir_documento():
         'timestamp': datetime.now(),
     }
 
-    # Inserir no Elasticsearch
+    # Inserção no Elasticsearch
     try:
         res = es.index(index="python-elasticsearch", body=doc)
         print("Documento inserido no Elasticsearch com sucesso:", res['result'])
@@ -137,30 +134,39 @@ def inserir_documento():
         print(f"Erro ao inserir documento no Elasticsearch: {e}")
         return "Erro ao inserir documento no Elasticsearch."
     
-    # Inserir o documento no banco de dados MySQL
+    # Inserção no MySQL e criação do workflow
     try:
         conn = connect_to_db()
-        if conn is None:
-            return "Erro ao conectar ao banco de dados."
-
         cursor = conn.cursor()
 
         query_insert_documento = """
         INSERT INTO DCDOCUMENT (IDDOCUMENT, NMDOCUMENT, CATEGORY, REDATOR, REVISION, CURRENT)
         VALUES (%s, %s, %s, %s, %s, %s)
         """
-        cursor.execute(query_insert_documento, (identificador, nome_documento, categoria, autor, 0, 2))  # REVISION = 0, CURRENT = 2
+        cursor.execute(query_insert_documento, (identificador, nome_documento, categoria, autor, 0, 2))
+        
+        # Criar um novo Workflow no MySQL
+        cursor.execute("""
+            INSERT INTO WORKFLOW (form_id, status) VALUES (%s, 'PENDENTE')
+        """, (identificador,))
+        workflow_id = cursor.lastrowid
+        
+        # Definir usuários aprovadores
+        usuarios_aprovadores = [1, 2]  # IDs dos usuários aprovadores
+        for usuario_id in usuarios_aprovadores:
+            cursor.execute("""
+                INSERT INTO WORKFLOW_ATIVIDADES (workflow_id, usuario_id, status)
+                VALUES (%s, %s, 'PENDENTE')
+            """, (workflow_id, usuario_id))
+        
         conn.commit()
-
         cursor.close()
         conn.close()
-
-        print("Documento inserido no banco de dados com sucesso.")
+        print("Documento e Workflow criados no banco de dados com sucesso.")
     except Exception as e:
-        print(f"Erro ao inserir documento no banco de dados: {e}")
-        return "Erro ao inserir documento no banco de dados."
+        print(f"Erro ao inserir documento e criar workflow no banco de dados: {e}")
+        return "Erro ao inserir documento e criar workflow no banco de dados."
 
-    # Redireciona de volta ao portal após inserção no Elasticsearch e no MySQL
     return redirect(url_for('meu_portal'))
 
 # Rota inicial para login
@@ -171,30 +177,48 @@ def login():
 @app.route('/login', methods=['GET', 'POST'])
 def login_route():
     if request.method == 'POST':
-        login_user = request.form['login']  # Captura o usuário do campo do HTML /login
-        password = request.form['senha']  # Captura a senha do campo do HTML /login
+        login_user_value = request.form['login']  # Renomeie esta variável
+        password = request.form['senha']
 
         conn = connect_to_db()
         cursor = conn.cursor(dictionary=True)
-
-        # Verifica se o usuário existe
-        cursor.execute("SELECT * FROM USERS WHERE LOGIN_USER = %s", (login_user,))
+        cursor.execute("SELECT * FROM USERS WHERE LOGIN_USER = %s", (login_user_value,))  # Use a nova variável
         user = cursor.fetchone()
 
-        if user:
-            # Compara a senha inserida com a senha armazenada (hash)
-            if bcrypt.checkpw(password.encode('utf-8'), user['PASSWORD'].encode('utf-8')):
-                flash("Login bem-sucedido!", "success")
-                return redirect(url_for('home'))
-            else:
-                flash("Senha incorreta!", "danger")
+        if user and bcrypt.checkpw(password.encode('utf-8'), user['PASSWORD'].encode('utf-8')):
+            user_obj = User(user['ID'], user['NAME_USER'])
+            login_user(user_obj)  # Autentica o usuário
+            flash("Login bem-sucedido!", "success")
+            return redirect(url_for('home'))
         else:
-            flash("Usuário não encontrado!", "danger")
+            flash("Usuário ou senha incorretos!", "danger")
 
         cursor.close()
         conn.close()
 
     return render_template('login.html')
+
+# Classe de usuário para Flask-Login
+class User(UserMixin):
+    def __init__(self, id, name_user):
+        self.id = id
+        self.name_user = name_user
+
+@login_manager.user_loader
+def load_user(user_id):
+    conn = connect_to_db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM USERS WHERE ID = %s", (user_id,))
+    user_data = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    # Verifique o conteúdo de user_data
+    print(user_data)  # Para verificar se o retorno inclui o campo 'id'
+    
+    if user_data:
+        return User(user_data['ID'], user_data['NAME_USER'])  # Use 'ID' com maiúscula para corresponder à tabela
+    return None
 
 # Rota para a página de registro
 @app.route('/cadastro', methods=['GET', 'POST'])
@@ -228,37 +252,94 @@ def home():
 # Rota para exibir tarefas
 @app.route('/minhas-tarefas')
 def minhas_tarefas():
-    return render_template('minhas_tarefas.html')
+    usuario_id = 1  # ID do usuário logado (obter dinamicamente após implementação de autenticação)
+    
+    conn = connect_to_db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT a.id, a.status, w.form_id, w.status as workflow_status
+        FROM WORKFLOW_ATIVIDADES a
+        JOIN WORKFLOW w ON a.workflow_id = w.id
+        WHERE a.usuario_id = %s AND a.status = 'PENDENTE'
+    """, (usuario_id,))
+    tarefas = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return render_template('minhas_tarefas.html', tarefas=tarefas)
+
+# Rota para aprovar ou reprovar documentos (Workflow)
+@app.route('/aprovar_reprovar/<int:atividade_id>', methods=['POST'])
+def aprovar_reprovar(atividade_id):
+    status = request.form['status']
+    conn = connect_to_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE WORKFLOW_ATIVIDADES
+        SET status = %s, atualizado_em = %s
+        WHERE id = %s
+    """, (status, datetime.now(), atividade_id))
+    
+    cursor.execute("""
+        SELECT workflow_id FROM WORKFLOW_ATIVIDADES WHERE id = %s
+    """, (atividade_id,))
+    workflow_id = cursor.fetchone()['workflow_id']
+    
+    cursor.execute("""
+        SELECT COUNT(*) as pendentes FROM WORKFLOW_ATIVIDADES WHERE workflow_id = %s AND status = 'PENDENTE'
+    """, (workflow_id,))
+    pendentes = cursor.fetchone()['pendentes']
+
+    if pendentes == 0:
+        cursor.execute("""
+            SELECT COUNT(*) as aprovadas FROM WORKFLOW_ATIVIDADES WHERE workflow_id = %s AND status = 'APROVADO'
+        """, (workflow_id,))
+        aprovadas = cursor.fetchone()['aprovadas']
+        
+        novo_status = 'APROVADO' if aprovadas > 0 else 'REPROVADO'
+        cursor.execute("""
+            UPDATE WORKFLOW SET status = %s WHERE id = %s
+        """, (novo_status, workflow_id))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    
+    flash(f'Atividade {status} com sucesso!')
+    return redirect(url_for('minhas_tarefas'))
+
 
 # Rota para a pesquisa de documentos
-@app.route('/pesquisa-documentos')
+@app.route('/pesquisa_documentos', methods=['GET'])
 def pesquisa_documentos():
     global es
 
-    # Iniciar o Elasticsearch, se não estiver iniciado
+    # Iniciar o Elasticsearch, se ainda não estiver iniciado
     if es is None:
         start_elasticsearch()
         initialize_elasticsearch()
 
-    query = request.args.get('document')
-    conn = connect_to_db()
-    if conn:
-        print("Conexão ativa, realizando consulta...")
-        try:
-            mycursor = conn.cursor()
-            mycursor.execute("SELECT iddocument, nmdocument FROM dcdocument WHERE iddocument = %s OR nmdocument LIKE %s", (query, '%' + query + '%'))
-            resultados = mycursor.fetchall()
-            mycursor.close()
-            return render_template('pesquisa_documentos.html', dados=resultados)
-        except mysql.connector.Error as err:
-            print(f"Erro ao consultar o banco de dados: {err}")
-            return "Erro ao consultar o banco de dados."
-        finally:
-            conn.close()
-            print("Conexão com o MySQL foi encerrada.")
-    else:
-        print("Falha na conexão com o banco de dados.")
-        return "Erro ao conectar ao banco de dados."
+    # Receber o termo de busca do formulário
+    termo_busca = request.args.get('document')
+
+    # Realizar busca no Elasticsearch
+    resultado_busca = es.search(
+        index="nome_do_indice",
+        body={
+            "query": {
+                "match": {
+                    "conteudo": termo_busca
+                }
+            }
+        }
+    )
+
+    # Extrair e formatar os resultados da busca
+    documentos = [hit['_source'] for hit in resultado_busca['hits']['hits']]
+
+    # Renderizar o template com os resultados
+    return render_template('pesquisa_documentos.html', documentos=documentos)
+
 
 # Rota para página de configurações
 @app.route('/configuracoes')

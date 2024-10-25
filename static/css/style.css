@@ -32,7 +32,6 @@ body {
     align-items: center;      
     height: 30vh;           
     margin: 0;
-    
 }
 
 .search:focus {
@@ -81,23 +80,31 @@ h1 {
     margin-top: 20px;
 }
 
+/* Estilos para a lista de tarefas */
+.tasks-container {
+    display: flex;
+    justify-content: center; /* Centraliza horizontalmente */
+    align-items: flex-start; /* Alinha os itens no início */
+    flex-direction: column;  /* Alinha os itens em coluna */
+    margin: 20px;           /* Margem para a lista */
+}
+
 ul {
-    list-style-type: none;
-    padding: 0;
+    list-style-type: none;  /* Remove os marcadores da lista */
+    padding: 0;             /* Remove o preenchimento padrão */
 }
 
 li {
-    background: white;
-    margin: 10px;
-    padding: 10px;
-    border-radius: 5px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s, box-shadow 0.3s;
+    background: white;      /* Fundo branco para cada item */
+    margin: 10px;          /* Margem entre os itens */
+    padding: 10px;         /* Preenchimento interno */
+    border-radius: 5px;     /* Bordas arredondadas */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Sombra dos itens */
+    transition: transform 0.3s; /* Transição suave */
 }
 
 li:hover {
-    transform: scale(1.02);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    transform: scale(1.02);  /* Efeito de aumento ao passar o mouse */
 }
 
 button {
@@ -127,7 +134,6 @@ button:active {
     height: 100vh;
     background-color: #f4f4f4;
 }
-
 
 input[type="text"],
 input[type="password"],
@@ -159,7 +165,7 @@ input[type="login-submit"]:hover {
 form {
     display: flex;
     flex-direction: column;
-    width: 300px;
+    width: 300px; /* Ajuste a largura do formulário */
 }
 
 input {
@@ -175,7 +181,7 @@ input:focus {
 }
 
 .banner {
-    background-image: url('sua-imagem-de-fundo.jpg'); /* Adicione uma imagem de fundo */
+    background-image: url('sua-imagem-de-fundo.jpg'); 
     background-size: cover;
     background-position: center;
     color: white;
@@ -193,7 +199,38 @@ form.show-form {
     display: flex;
     flex-direction: column;
     margin: 20px 0;
-    opacity: 1;
+    opacity: 1; 
+}
+
+/* Estilos para o formulário de criação de documento */
+.form-container {
+    display: flex;
+    justify-content: center;  /* Centraliza horizontalmente */
+    align-items: center;      /* Centraliza verticalmente */
+    flex-direction: column;   /* Alinha os elementos em coluna */
+    margin: 20px auto;       /* Margem automática para centralizar o contêiner */
+    padding: 20px;           /* Espaçamento interno */
+    background-color: #f9f9f9; /* Cor de fundo do contêiner */
+    border-radius: 10px;     /* Bordas arredondadas */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Sombra do contêiner */
+    width: 400px;            /* Largura fixa do formulário */
+}
+
+form {
+    width: 100%;             /* O formulário ocupa toda a largura do contêiner */
+}
+
+label {
+    margin-top: 10px;       /* Espaçamento acima dos rótulos */
+}
+
+input[type="text"], select {
+    padding: 10px;          /* Espaçamento interno */
+    width: 100%;            /* Largura total */
+    border: 1px solid #ccc; /* Borda do campo */
+    border-radius: 5px;     /* Bordas arredondadas */
+    margin-top: 5px;        /* Espaçamento acima do campo */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Sombra dos campos */
 }
 
 button#create-document-btn {
@@ -204,7 +241,7 @@ button#create-document-btn {
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.3s, transform 0.3s;
-    margin-top: 20px;
+    margin-top: 20px;       /* Espaçamento acima do botão */
 }
 
 button#create-document-btn:hover {

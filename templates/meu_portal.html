@@ -12,7 +12,8 @@
         <a href="/home">Home</a>
         <a href="/minhas-tarefas">Minhas Tarefas</a>
         <a href="/meu-portal">Meu Portal</a>
-        <form id="search-form" action="/pesquisa-documentos" method="get" class="search-toolbar-container">
+        <span>Bem-vindo, {{ current_user.name_user }}</span>
+        <form id="search-form" action="/pesquisa_documentos" method="get" class="search-toolbar-container">
             <input type="text" placeholder="Pesquisar documentos..." class="search-toolbar" name="document">
             <span class="icon-search-toolbar"><i class="fas fa-search"></i></span>
         </form>
@@ -22,29 +23,40 @@
     <p>Criar Documento.</p>
     
     <!-- Botão para abrir o formulário de criação de documento -->
-    <button id="create-document-btn">Iniciar Criação de Documento</button>
+    <button id="create-document-btn" onclick="toggleForm()">Iniciar Criação de Documento</button>
 
-<!-- Formulário oculto inicialmente -->
-<form id="document-form" action="/inserir-documento" method="POST" class="hidden-form">
-    <label for="identificador">Identificador:</label>
-    <input type="text" id="identificador" name="identificador" required>
+<!-- Formulário de criação de documento -->
+<div class="form-container">
+    <form id="document-form" action="/inserir-documento" method="POST">
+        <h2>Criar Documento</h2> <!-- Adicionei um título para o formulário -->
+        
+        <label for="identificador">Identificador:</label>
+        <input type="text" id="identificador" name="identificador" required>
 
-    <label for="nome-documento">Nome do Documento:</label>
-    <input type="text" id="nome-documento" name="nome_documento" required>
+        <label for="nome-documento">Nome do Documento:</label>
+        <input type="text" id="nome-documento" name="nome_documento" required>
 
-    <label for="categoria">Categoria:</label>
-    <select id="categoria" name="categoria" required>
-        {% for categoria in categorias %}
-            <option value="{{ categoria.IDCATEGORY }}">{{ categoria.NAME }}</option>
-        {% endfor %}
-    </select>
+        <label for="categoria">Categoria:</label>
+        <select id="categoria" name="categoria" required>
+            {% for categoria in categorias %}
+                <option value="{{ categoria.IDCATEGORY }}">{{ categoria.NAME }}</option>
+            {% endfor %}
+        </select>
 
-    <!-- O autor será automaticamente preenchido com o nome do usuário logado -->
-    <input type="hidden" id="autor" name="autor" value="{{ current_user.NAME_USER }}">
+        <!-- O autor será automaticamente preenchido com o nome do usuário logado -->
+        <input type="hidden" id="autor" name="autor" value="{{ current_user.NAME_USER }}">
 
-    <button type="submit">Enviar para Aprovação</button>
-</form>
+        <button type="submit">Enviar para Aprovação</button>
+    </form>
+</div>
 
     <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
+    <script>
+        // Função para alternar a exibição do formulário
+        function toggleForm() {
+            const form = document.getElementById('document-form');
+            form.style.display = (form.style.display === 'none' || form.style.display === '') ? 'block' : 'none';
+        }
+    </script>
 </body>
 </html>

@@ -12,21 +12,29 @@
         <a href="/home">Home</a>
         <a href="/minhas-tarefas">Minhas Tarefas</a>
         <a href="/meu-portal">Meu Portal</a>
-        <form id="search-form" action="/pesquisa_documentos" method="get" class="search-toolbar-container" @submit.prevent="submitSearch">
-            <input type="text" placeholder="Pesquisar documentos..." class="search-toolbar" name="document" @keypress="handleKeyPress">
-            <span class="icon-search-toolbar" @click="submitSearch"><i class="fas fa-search"></i></span>
-        </form>
         
+        <!-- Formulário de busca -->
+        <form id="search-form" action="/pesquisa_documentos" method="get" class="search-toolbar-container" onsubmit="event.preventDefault(); submitSearch()">
+            <input type="text" placeholder="Pesquisar documentos..." class="search-toolbar" name="document" id="search-input">
+            <span class="icon-search-toolbar" onclick="submitSearch()"><i class="fas fa-search"></i></span>
+        </form>
     </div>
+    
     <h1>Pesquisa de Documentos</h1>
     <ul>
-        <li>Documento 1</li>
-        <li>Documento 2</li>
-        <li>Documento 3</li>
+        {% for doc in documentos %}
+            <li>{{ doc['nome_documento'] }} - {{ doc['conteudo'] }}</li>
+        {% else %}
+            <li>Nenhum documento encontrado.</li>
+        {% endfor %}
     </ul>
     
-    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
-    <script src="{{ url_for('static', filename='js/search.js') }}"></script>
     <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
+    <script>
+        // Função para submeter a busca
+        function submitSearch() {
+            document.getElementById('search-form').submit();
+        }
+    </script>
 </body>
 </html>
