@@ -57,7 +57,7 @@ def meu_portal():
     cursor = conn.cursor(dictionary=True)
 
     # Buscar categorias existentes no banco de dados
-    cursor.execute("SELECT IDCATEGORY, NAME FROM DCCATEGORY")
+    cursor.execute("SELECT IDCATEGORY, IDENTIFIER FROM DCCATEGORY")
     categorias = cursor.fetchall()
 
     # Fechar a conexão
@@ -70,30 +70,37 @@ def meu_portal():
 # Rota para inserir documento no MySQL
 @app.route('/inserir-documento', methods=['POST'])
 def inserir_documento():
-    identificador = request.form['identificador']
+    identificador = request.form['identificador']  # IDDOCUMENT como string
     nome_documento = request.form['nome_documento']
-    categoria = request.form['categoria']
-    autor = request.form['autor']
+    category = request.form['categoria'] 
+    autor = current_user.name_user  # Redator é o nome do usuário logado
+    
+    # Defina o valor padrão para CURRENT
+    current_status = 2 
 
-    # Inserção no MySQL e criação do workflow
+    # Inserção no MySQL
     try:
         conn = connect_to_db()
         cursor = conn.cursor()
 
         query_insert_documento = """
-        INSERT INTO DCDOCUMENT (IDDOCUMENT, NMDOCUMENT, CATEGORY, REDATOR, REVISION, CURRENT)
+        INSERT INTO DCDOCUMENT (IDDOCUMENT, NMDOCUMENT, CATEGORY, REVISION, CURRENT, REDATOR)
         VALUES (%s, %s, %s, %s, %s, %s)
         """
-        cursor.execute(query_insert_documento, (identificador, nome_documento, categoria, autor, 0, 2))
+        cursor.execute(query_insert_documento, (identificador, nome_documento, category, 0, current_status, autor))
         
         # Criar um novo Workflow no MySQL
-        cursor.execute("""INSERT INTO WORKFLOW (form_id, status) VALUES (%s, 'PENDENTE')""", (identificador,))
+        cursor.execute(""" 
+            INSERT INTO WORKFLOW (form_id, status) VALUES (%s, 'PENDENTE')
+        """, (identificador,))
         workflow_id = cursor.lastrowid
         
-        # Definir usuários aprovadores
-        usuarios_aprovadores = [1, 2]  # IDs dos usuários aprovadores
-        for usuario_id in usuarios_aprovadores:
-            cursor.execute("""INSERT INTO WORKFLOW_ATIVIDADES (workflow_id, usuario_id, status) VALUES (%s, %s, 'PENDENTE')""", (workflow_id, usuario_id))
+        # Definir usuário aprovador (agora é apenas 1)
+        usuario_aprovador = 1  # ID do usuário aprovador
+        cursor.execute(""" 
+            INSERT INTO WORKFLOW_ATIVIDADES (workflow_id, usuario_id, status)
+            VALUES (%s, %s, 'PENDENTE')
+        """, (workflow_id, usuario_aprovador))
         
         conn.commit()
         cursor.close()
@@ -104,7 +111,6 @@ def inserir_documento():
         return "Erro ao inserir documento e criar workflow no banco de dados."
 
     return redirect(url_for('meu_portal'))
-
 
 # Rota inicial para login
 @app.route('/')
@@ -202,38 +208,48 @@ def minhas_tarefas():
 
     return render_template('minhas_tarefas.html', tarefas=tarefas)
 
-# Rota para aprovar ou reprovar documentos (Workflow)
 @app.route('/aprovar_reprovar/<int:atividade_id>', methods=['POST'])
 def aprovar_reprovar(atividade_id):
     status = request.form['status']
     conn = connect_to_db()
     cursor = conn.cursor()
-    cursor.execute("""
+    
+    # Atualiza o status da atividade
+    cursor.execute(""" 
         UPDATE WORKFLOW_ATIVIDADES
         SET status = %s, atualizado_em = %s
         WHERE id = %s
     """, (status, datetime.now(), atividade_id))
     
-    cursor.execute("""
+    # Obtém o workflow_id relacionado à atividade
+    cursor.execute(""" 
         SELECT workflow_id FROM WORKFLOW_ATIVIDADES WHERE id = %s
     """, (atividade_id,))
-    workflow_id = cursor.fetchone()['workflow_id']
-    
-    cursor.execute("""
+    workflow_id = cursor.fetchone()[0]  # Acesso correto
+
+    # Verifica quantas atividades estão pendentes
+    cursor.execute(""" 
         SELECT COUNT(*) as pendentes FROM WORKFLOW_ATIVIDADES WHERE workflow_id = %s AND status = 'PENDENTE'
     """, (workflow_id,))
-    pendentes = cursor.fetchone()['pendentes']
+    pendentes = cursor.fetchone()[0]  # Acesso correto
 
     if pendentes == 0:
-        cursor.execute("""
+        # Verifica quantas atividades estão aprovadas
+        cursor.execute(""" 
             SELECT COUNT(*) as aprovadas FROM WORKFLOW_ATIVIDADES WHERE workflow_id = %s AND status = 'APROVADO'
         """, (workflow_id,))
-        aprovadas = cursor.fetchone()['aprovadas']
+        aprovadas = cursor.fetchone()[0]  # Acesso correto
         
+        # Atualiza o status do workflow
         novo_status = 'APROVADO' if aprovadas > 0 else 'REPROVADO'
-        cursor.execute("""
+        cursor.execute(""" 
             UPDATE WORKFLOW SET status = %s WHERE id = %s
         """, (novo_status, workflow_id))
+
+        # Atualiza o CURRENT do documento para 1 quando aprovado
+        cursor.execute("""
+            UPDATE DCDOCUMENT SET CURRENT = 1 WHERE IDDOCUMENT = (SELECT form_id FROM WORKFLOW WHERE id = %s)
+        """, (workflow_id,))
 
     conn.commit()
     cursor.close()
@@ -241,6 +257,7 @@ def aprovar_reprovar(atividade_id):
     
     flash(f'Atividade {status} com sucesso!')
     return redirect(url_for('minhas_tarefas'))
+
 
 # Rota para a pesquisa de documentos
 @app.route('/pesquisa_documentos', methods=['GET'])

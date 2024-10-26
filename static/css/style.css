@@ -252,3 +252,32 @@ button#create-document-btn:hover {
 button#create-document-btn:active {
     transform: scale(0.95);
 }
+
+.approve-button {
+    background-color: #28a745; /* Verde */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.3s;
+}
+
+.approve-button:hover {
+    background-color: #218838; /* Verde mais escuro ao passar o mouse */
+}
+
+.reject-button {
+    background-color: #dc3545; /* Vermelho */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.3s;
+}
+
+.reject-button:hover {
+    background-color: #c82333; /* Vermelho mais escuro ao passar o mouse */
+}
+

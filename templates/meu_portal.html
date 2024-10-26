@@ -39,7 +39,7 @@
         <label for="categoria">Categoria:</label>
         <select id="categoria" name="categoria" required>
             {% for categoria in categorias %}
-                <option value="{{ categoria.IDCATEGORY }}">{{ categoria.NAME }}</option>
+                <option value="{{ categoria.IDCATEGORY }}">{{ categoria.IDENTIFIER }}</option>
             {% endfor %}
         </select>
 
