@@ -269,14 +269,24 @@ def pesquisa_documentos():
     conn = connect_to_db()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
-        SELECT * FROM DCDOCUMENT WHERE NMDOCUMENT LIKE %s
+        SELECT D.IDDOCUMENT AS iddocument, D.NMDOCUMENT AS nmdocument, C.IDENTIFIER AS category, 
+               D.DOCUMENT_DATE_PUBLISH AS document_date_publish, D.REDATOR AS redator
+        FROM DCDOCUMENT D
+        JOIN DCCATEGORY C ON D.CATEGORY = C.IDCATEGORY
+        WHERE D.NMDOCUMENT LIKE %s AND D.CURRENT = 1
     """, ('%' + termo_busca + '%',))
     documentos = cursor.fetchall()
     cursor.close()
     conn.close()
 
     # Renderizar o template com os resultados
-    return render_template('pesquisa_documentos.html', documentos=documentos)
+    mensagem = ""
+    if not documentos:
+        mensagem = "Nenhum documento encontrado."
+
+    return render_template('pesquisa_documentos.html', documentos=documentos, mensagem=mensagem)
+
+
 
 # Rota para página de configurações
 @app.route('/configuracoes')

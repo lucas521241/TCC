@@ -21,11 +21,18 @@
     </div>
     
     <h1>Pesquisa de Documentos</h1>
+
+    <p>{{ mensagem }}</p>  <!-- Mensagem de retorno -->
+
     <ul>
         {% for doc in documentos %}
-            <li>{{ doc['nome_documento'] }} - {{ doc['conteudo'] }}</li>
-        {% else %}
-            <li>Nenhum documento encontrado.</li>
+            <li>
+                ID: {{ doc['iddocument'] }}<br>
+                Nome: {{ doc['nmdocument'] }}<br>
+                Categoria: {{ doc['category'] }}<br>
+                Data de Publicação: {{ doc['document_date_publish'] }}<br>
+                Redator: {{ doc['redator'] }}
+            </li>
         {% endfor %}
     </ul>
     
