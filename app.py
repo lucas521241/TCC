@@ -1,19 +1,12 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, current_user, login_required, UserMixin
-from elasticsearch import Elasticsearch
 from datetime import datetime
 import mysql.connector
-import subprocess
-import time
 import bcrypt
 import os
-import subprocess
-import time
-import requests
 import secrets
 
 app = Flask(__name__)
-
 
 # Configurar o Flask-Login
 login_manager = LoginManager()
@@ -53,38 +46,6 @@ def connect_to_db():
         print(f"Erro: {err}")
         return None
 
-# Função para iniciar o Elasticsearch
-def start_elasticsearch():
-    es_path = r"C:\Users\sch_l\elasticsearch-8.15.2\bin\elasticsearch.bat"
-    # Inicia o Elasticsearch em um subprocesso
-    subprocess.Popen(es_path, shell=True)
-    time.sleep(30)  # Aguarda o Elasticsearch iniciar
-
-# Verifica se o Elasticsearch está rodando
-def check_elasticsearch():
-    try:
-        response = requests.get('http://localhost:9200')
-        if response.status_code == 200:
-            print("Elasticsearch iniciado com sucesso!")
-            return True
-        else:
-            print(f"Elasticsearch não respondeu corretamente. Código: {response.status_code}")
-            return False
-    except requests.exceptions.ConnectionError:
-        print("Não foi possível conectar ao Elasticsearch. Verifique se ele foi iniciado corretamente.")
-        return False
-
-# Conexão com o Elasticsearch (defina globalmente)
-es = None
-
-def initialize_elasticsearch():
-    global es
-    if check_elasticsearch():
-        es = Elasticsearch(['http://localhost:9200'])
-        print("Conexão com Elasticsearch estabelecida.")
-    else:
-        print("Erro ao estabelecer conexão com o Elasticsearch.")
-
 # Rota inicial do portal
 @app.route('/meu-portal')
 def meu_portal():
@@ -106,34 +67,14 @@ def meu_portal():
     # Passar as categorias para o template
     return render_template('meu_portal.html', categorias=categorias)
 
-# Rota para inserir documento no Elasticsearch e MYSQL
+# Rota para inserir documento no MySQL
 @app.route('/inserir-documento', methods=['POST'])
 def inserir_documento():
-    global es
-    if es is None:
-        start_elasticsearch()
-        initialize_elasticsearch()
-
     identificador = request.form['identificador']
     nome_documento = request.form['nome_documento']
     categoria = request.form['categoria']
     autor = request.form['autor']
-    doc = {
-        'identificador': identificador,
-        'nome_documento': nome_documento,
-        'categoria': categoria,
-        'autor': autor,
-        'timestamp': datetime.now(),
-    }
 
-    # Inserção no Elasticsearch
-    try:
-        res = es.index(index="python-elasticsearch", body=doc)
-        print("Documento inserido no Elasticsearch com sucesso:", res['result'])
-    except Exception as e:
-        print(f"Erro ao inserir documento no Elasticsearch: {e}")
-        return "Erro ao inserir documento no Elasticsearch."
-    
     # Inserção no MySQL e criação do workflow
     try:
         conn = connect_to_db()
@@ -146,18 +87,13 @@ def inserir_documento():
         cursor.execute(query_insert_documento, (identificador, nome_documento, categoria, autor, 0, 2))
         
         # Criar um novo Workflow no MySQL
-        cursor.execute("""
-            INSERT INTO WORKFLOW (form_id, status) VALUES (%s, 'PENDENTE')
-        """, (identificador,))
+        cursor.execute("""INSERT INTO WORKFLOW (form_id, status) VALUES (%s, 'PENDENTE')""", (identificador,))
         workflow_id = cursor.lastrowid
         
         # Definir usuários aprovadores
         usuarios_aprovadores = [1, 2]  # IDs dos usuários aprovadores
         for usuario_id in usuarios_aprovadores:
-            cursor.execute("""
-                INSERT INTO WORKFLOW_ATIVIDADES (workflow_id, usuario_id, status)
-                VALUES (%s, %s, 'PENDENTE')
-            """, (workflow_id, usuario_id))
+            cursor.execute("""INSERT INTO WORKFLOW_ATIVIDADES (workflow_id, usuario_id, status) VALUES (%s, %s, 'PENDENTE')""", (workflow_id, usuario_id))
         
         conn.commit()
         cursor.close()
@@ -169,6 +105,7 @@ def inserir_documento():
 
     return redirect(url_for('meu_portal'))
 
+
 # Rota inicial para login
 @app.route('/')
 def login():
@@ -177,12 +114,12 @@ def login():
 @app.route('/login', methods=['GET', 'POST'])
 def login_route():
     if request.method == 'POST':
-        login_user_value = request.form['login']  # Renomeie esta variável
+        login_user_value = request.form['login']  
         password = request.form['senha']
 
         conn = connect_to_db()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM USERS WHERE LOGIN_USER = %s", (login_user_value,))  # Use a nova variável
+        cursor.execute("SELECT * FROM USERS WHERE LOGIN_USER = %s", (login_user_value,))  
         user = cursor.fetchone()
 
         if user and bcrypt.checkpw(password.encode('utf-8'), user['PASSWORD'].encode('utf-8')):
@@ -213,9 +150,6 @@ def load_user(user_id):
     cursor.close()
     conn.close()
 
-    # Verifique o conteúdo de user_data
-    print(user_data)  # Para verificar se o retorno inclui o campo 'id'
-    
     if user_data:
         return User(user_data['ID'], user_data['NAME_USER'])  # Use 'ID' com maiúscula para corresponder à tabela
     return None
@@ -252,7 +186,7 @@ def home():
 # Rota para exibir tarefas
 @app.route('/minhas-tarefas')
 def minhas_tarefas():
-    usuario_id = 1  # ID do usuário logado (obter dinamicamente após implementação de autenticação)
+    usuario_id = current_user.id  # ID do usuário logado
     
     conn = connect_to_db()
     cursor = conn.cursor(dictionary=True)
@@ -308,38 +242,24 @@ def aprovar_reprovar(atividade_id):
     flash(f'Atividade {status} com sucesso!')
     return redirect(url_for('minhas_tarefas'))
 
-
 # Rota para a pesquisa de documentos
 @app.route('/pesquisa_documentos', methods=['GET'])
 def pesquisa_documentos():
-    global es
-
-    # Iniciar o Elasticsearch, se ainda não estiver iniciado
-    if es is None:
-        start_elasticsearch()
-        initialize_elasticsearch()
-
     # Receber o termo de busca do formulário
     termo_busca = request.args.get('document')
 
-    # Realizar busca no Elasticsearch
-    resultado_busca = es.search(
-        index="nome_do_indice",
-        body={
-            "query": {
-                "match": {
-                    "conteudo": termo_busca
-                }
-            }
-        }
-    )
-
-    # Extrair e formatar os resultados da busca
-    documentos = [hit['_source'] for hit in resultado_busca['hits']['hits']]
+    # Buscar documentos no MySQL
+    conn = connect_to_db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT * FROM DCDOCUMENT WHERE NMDOCUMENT LIKE %s
+    """, ('%' + termo_busca + '%',))
+    documentos = cursor.fetchall()
+    cursor.close()
+    conn.close()
 
     # Renderizar o template com os resultados
     return render_template('pesquisa_documentos.html', documentos=documentos)
-
 
 # Rota para página de configurações
 @app.route('/configuracoes')

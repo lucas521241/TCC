@@ -28,7 +28,7 @@
 <!-- Formulário de criação de documento -->
 <div class="form-container">
     <form id="document-form" action="/inserir-documento" method="POST">
-        <h2>Criar Documento</h2> <!-- Adicionei um título para o formulário -->
+        <h2>Criar Documento</h2>
         
         <label for="identificador">Identificador:</label>
         <input type="text" id="identificador" name="identificador" required>
@@ -43,8 +43,8 @@
             {% endfor %}
         </select>
 
-        <!-- O autor será automaticamente preenchido com o nome do usuário logado -->
         <input type="hidden" id="autor" name="autor" value="{{ current_user.NAME_USER }}">
+        <input type="hidden" id="current" name="current" value="1"> <!-- Para definir o status atual -->
 
         <button type="submit">Enviar para Aprovação</button>
     </form>
