@@ -60,12 +60,17 @@ def meu_portal():
     cursor.execute("SELECT IDCATEGORY, IDENTIFIER FROM DCCATEGORY")
     categorias = cursor.fetchall()
 
+    # Buscar documentos existentes no banco de dados
+    cursor.execute("SELECT CDDOCUMENT, IDDOCUMENT FROM DCDOCUMENT WHERE CURRENT = 1")
+    documentos = cursor.fetchall()
+
     # Fechar a conexão
     cursor.close()
     conn.close()
 
-    # Passar as categorias para o template
-    return render_template('meu_portal.html', categorias=categorias)
+    # Passar as categorias e documentos para o template
+    return render_template('meu_portal.html', categorias=categorias, documentos=documentos)
+
 
 # Rota para inserir documento no MySQL
 @app.route('/inserir-documento', methods=['POST'])
@@ -84,10 +89,10 @@ def inserir_documento():
         cursor = conn.cursor()
 
         query_insert_documento = """
-        INSERT INTO DCDOCUMENT (IDDOCUMENT, NMDOCUMENT, CATEGORY, REVISION, CURRENT, REDATOR)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO DCDOCUMENT (IDDOCUMENT, NMDOCUMENT, CATEGORY, REVISION, CURRENT, REDATOR, STATUS)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
-        cursor.execute(query_insert_documento, (identificador, nome_documento, category, 0, current_status, autor))
+        cursor.execute(query_insert_documento, (identificador, nome_documento, category, 0, current_status, autor, 'EMISSÃO'))
         
         # Criar um novo Workflow no MySQL
         cursor.execute(""" 
@@ -95,7 +100,7 @@ def inserir_documento():
         """, (identificador,))
         workflow_id = cursor.lastrowid
         
-        # Definir usuário aprovador (agora é apenas 1)
+        # Definir usuário aprovador 
         usuario_aprovador = 1  # ID do usuário aprovador
         cursor.execute(""" 
             INSERT INTO WORKFLOW_ATIVIDADES (workflow_id, usuario_id, status)
@@ -111,6 +116,152 @@ def inserir_documento():
         return "Erro ao inserir documento e criar workflow no banco de dados."
 
     return redirect(url_for('meu_portal'))
+
+# Rota para Iniciar uma revisão
+@app.route('/revisar-documento', methods=['POST'])
+def revisar_documento():
+    identificador = request.form['identificador']
+    nome_documento = request.form['nome_documento']
+    category = request.form['categoria']
+    autor = current_user.name_user
+
+    try:
+        conn = connect_to_db()
+        cursor = conn.cursor(dictionary=True)
+
+        query_select_documento = """
+        SELECT * FROM DCDOCUMENT
+        WHERE IDDOCUMENT = %s AND CURRENT = 1
+        """
+        cursor.execute(query_select_documento, (identificador,))
+        documento = cursor.fetchone()
+
+        if documento:
+            nova_revisao = documento['REVISION'] + 1
+
+            query_insert_documento = """
+            INSERT INTO DCDOCUMENT (IDDOCUMENT, NMDOCUMENT, CATEGORY, REVISION, CURRENT, REDATOR, STATUS, DCREVISION)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(query_insert_documento, (identificador, nome_documento, category, nova_revisao, 1, autor, 'REVISÃO', nova_revisao))
+            
+            query_update_documento = """
+            UPDATE DCDOCUMENT
+            SET CURRENT = 2
+            WHERE CDDOCUMENT = %s
+            """
+            cursor.execute(query_update_documento, (documento['CDDOCUMENT'],))
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            print("Documento revisado com sucesso.")
+        else:
+            print("Documento não encontrado.")
+            return "Documento não encontrado."
+    except Exception as e:
+        print(f"Erro ao revisar documento: {e}")
+        return "Erro ao revisar documento."
+
+    return redirect(url_for('meu_portal'))
+
+# Rota para iniciar um cancelamento
+@app.route('/iniciar-cancelamento', methods=['POST'])
+def iniciar_cancelamento():
+    identificador = request.form['identificador']
+    motivo = request.form['motivo']
+
+    try:
+        conn = connect_to_db()
+        cursor = conn.cursor()
+
+        # Inserir uma nova entrada no workflow para o cancelamento com o motivo
+        cursor.execute(""" 
+            INSERT INTO WORKFLOW (form_id, status, motivo) VALUES (%s, 'CANCELAMENTO PENDENTE', %s)
+        """, (identificador, motivo))
+        workflow_id = cursor.lastrowid
+        
+        # Definir usuário aprovador
+        usuario_aprovador = 1
+        cursor.execute(""" 
+            INSERT INTO WORKFLOW_ATIVIDADES (workflow_id, usuario_id, status)
+            VALUES (%s, %s, 'PENDENTE')
+        """, (workflow_id, usuario_aprovador))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print("Cancelamento do documento pendente de aprovação.")
+    except Exception as e:
+        print(f"Erro ao iniciar cancelamento: {e}")
+        return "Erro ao iniciar cancelamento."
+
+    return redirect(url_for('meu_portal'))
+
+
+# Rota para aprovar uma revisão
+@app.route('/aprovar-revisao', methods=['POST'])
+def aprovar_revisao():
+    identificador = request.form['identificador']
+
+    try:
+        conn = connect_to_db()
+        cursor = conn.cursor()
+
+        # Atualizar o documento antigo para CURRENT = 2
+        query_update_antigo = """
+        UPDATE DCDOCUMENT
+        SET CURRENT = 2
+        WHERE IDDOCUMENT = %s AND CURRENT = 1
+        """
+        cursor.execute(query_update_antigo, (identificador,))
+
+        # Atualizar o novo documento para HOMOLOGADO e CURRENT = 1
+        query_update_novo = """
+        UPDATE DCDOCUMENT
+        SET STATUS = 'HOMOLOGADO', CURRENT = 1
+        WHERE IDDOCUMENT = %s AND CURRENT = 2
+        """
+        cursor.execute(query_update_novo, (identificador,))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print("Revisão aprovada com sucesso.")
+    except Exception as e:
+        print(f"Erro ao aprovar revisão: {e}")
+        return "Erro ao aprovar revisão."
+
+    return redirect(url_for('meu_portal'))
+
+
+# Rota pra aprovar um cancelamento
+@app.route('/aprovar-cancelamento', methods=['POST'])
+def aprovar_cancelamento():
+    identificador = request.form['identificador']
+
+    try:
+        conn = connect_to_db()
+        cursor = conn.cursor()
+
+        # Atualizar o documento para CANCELADO e CURRENT = 2
+        query_update_cancelamento = """
+        UPDATE DCDOCUMENT
+        SET STATUS = 'CANCELADO', CURRENT = 2
+        WHERE IDDOCUMENT = %s AND CURRENT = 1
+        """
+        cursor.execute(query_update_cancelamento, (identificador,))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print("Cancelamento aprovado com sucesso.")
+    except Exception as e:
+        print(f"Erro ao aprovar cancelamento: {e}")
+        return "Erro ao aprovar cancelamento."
+
+    return redirect(url_for('meu_portal'))
+
 
 # Rota inicial para login
 @app.route('/')
@@ -208,6 +359,7 @@ def minhas_tarefas():
 
     return render_template('minhas_tarefas.html', tarefas=tarefas)
 
+# Rota para aprovar ou reprovar tarefas de criação
 @app.route('/aprovar_reprovar/<int:atividade_id>', methods=['POST'])
 def aprovar_reprovar(atividade_id):
     status = request.form['status']
@@ -270,14 +422,15 @@ def pesquisa_documentos():
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
         SELECT D.IDDOCUMENT AS iddocument, D.NMDOCUMENT AS nmdocument, C.IDENTIFIER AS category, 
-               D.DOCUMENT_DATE_PUBLISH AS document_date_publish, D.REDATOR AS redator
+            D.DOCUMENT_DATE_PUBLISH AS document_date_publish, D.REDATOR AS redator
         FROM DCDOCUMENT D
         JOIN DCCATEGORY C ON D.CATEGORY = C.IDCATEGORY
-        WHERE D.NMDOCUMENT LIKE %s AND D.CURRENT = 1
-    """, ('%' + termo_busca + '%',))
+        WHERE D.CURRENT = 1 AND D.NMDOCUMENT LIKE %s OR D.IDDOCUMENT LIKE %s OR C.IDENTIFIER LIKE %s OR D.REDATOR LIKE %s
+    """, ('%' + termo_busca + '%', '%' + termo_busca + '%', '%' + termo_busca + '%', '%' + termo_busca + '%'))
     documentos = cursor.fetchall()
     cursor.close()
     conn.close()
+
 
     # Renderizar o template com os resultados
     mensagem = ""

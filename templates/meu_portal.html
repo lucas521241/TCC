@@ -20,42 +20,102 @@
     </div>
     
     <h1>Meu Portal</h1>
-    <p>Criar Documento.</p>
+    <p>Inicialize um Workflow:</p>
     
-    <!-- Botão para abrir o formulário de criação de documento -->
-    <button id="create-document-btn" onclick="toggleForm()">Iniciar Criação de Documento</button>
+    <!-- Seleção de ação -->
+    <select id="action-select" onchange="toggleForm()">
+        <option value="">Selecione uma ação</option>
+        <option value="create">Criar Documento</option>
+        <option value="review">Revisar Documento</option>
+        <option value="cancel">Cancelar Documento</option>
+    </select>
 
-<!-- Formulário de criação de documento -->
-<div class="form-container">
-    <form id="document-form" action="/inserir-documento" method="POST">
-        <h2>Criar Documento</h2>
-        
-        <label for="identificador">Identificador:</label>
-        <input type="text" id="identificador" name="identificador" required>
+    <!-- Formulário de criação de documento -->
+    <div class="form-container" id="create-form" style="display: none;">
+        <form id="document-form" action="/inserir-documento" method="POST">
+            <h2>Criar Documento</h2>
+            
+            <label for="identificador">Identificador:</label>
+            <input type="text" id="identificador" name="identificador" required>
 
-        <label for="nome-documento">Nome do Documento:</label>
-        <input type="text" id="nome-documento" name="nome_documento" required>
+            <label for="nome-documento">Nome do Documento:</label>
+            <input type="text" id="nome-documento" name="nome_documento" required>
 
-        <label for="categoria">Categoria:</label>
-        <select id="categoria" name="categoria" required>
-            {% for categoria in categorias %}
-                <option value="{{ categoria.IDCATEGORY }}">{{ categoria.IDENTIFIER }}</option>
-            {% endfor %}
-        </select>
+            <label for="categoria">Categoria:</label>
+            <select id="categoria" name="categoria" required>
+                {% for categoria in categorias %}
+                    <option value="{{ categoria.IDCATEGORY }}">{{ categoria.IDENTIFIER }}</option>
+                {% endfor %}
+            </select>
 
-        <input type="hidden" id="autor" name="autor" value="{{ current_user.NAME_USER }}">
-        <input type="hidden" id="current" name="current" value="1"> <!-- Para definir o status atual -->
+            <input type="hidden" id="autor" name="autor" value="{{ current_user.NAME_USER }}">
+            <input type="hidden" id="current" name="current" value="1"> <!-- Para definir o status atual -->
 
-        <button type="submit">Enviar para Aprovação</button>
-    </form>
-</div>
+            <button type="submit" id="submit-btn">Enviar para Aprovação</button>
+        </form>
+    </div>
+
+    <!-- Formulário de cancelar documento -->
+    <div class="form-container" id="cancel-form" style="display: none;">
+        <form id="cancel-document-form" action="/cancelar-documento" method="POST">
+            <h2>Cancelar Documento</h2>
+            
+            <label for="identificador-cancel">Identificador:</label>
+            <select id="identificador-cancel" name="identificador" required>
+                {% for documento in documentos %}
+                    <option value="{{ documento.CDDOCUMENT }}">{{ documento.IDDOCUMENT }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="motivo-cancel">Motivo:</label>
+            <textarea id="motivo-cancel" name="motivo" required></textarea>
+
+            <button type="submit" id="cancel-btn">Cancelar Documento</button>
+        </form>
+    </div>
+
+    <!-- Formulário de revisar documento -->
+    <div class="form-container" id="review-form" style="display: none;">
+        <form id="review-document-form" action="/revisar-documento" method="POST">
+            <h2>Revisar Documento</h2>
+            
+            <label for="identificador-review">Identificador:</label>
+            <select id="identificador-review" name="identificador" required>
+                {% for documento in documentos %}
+                    <option value="{{ documento.CDDOCUMENT }}">{{ documento.IDDOCUMENT }}</option>
+                {% endfor %}
+            </select>
+
+            <label for="nome-documento-review">Nome do Documento:</label>
+            <input type="text" id="nome-documento-review" name="nome_documento" required>
+
+            <label for="categoria-review">Categoria:</label>
+            <select id="categoria-review" name="categoria" required>
+                {% for categoria in categorias %}
+                    <option value="{{ categoria.IDCATEGORY }}">{{ categoria.IDENTIFIER }}</option>
+                {% endfor %}
+            </select>
+
+            <button type="submit" id="review-btn">Revisar Documento</button>
+        </form>
+    </div>
 
     <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
     <script>
-        // Função para alternar a exibição do formulário
+        // Função para alternar a exibição dos formulários
         function toggleForm() {
-            const form = document.getElementById('document-form');
-            form.style.display = (form.style.display === 'none' || form.style.display === '') ? 'block' : 'none';
+            const action = document.getElementById('action-select').value;
+            document.getElementById('create-form').style.display = 'none';
+            document.getElementById('cancel-form').style.display = 'none';
+            document.getElementById('review-form').style.display = 'none';
+
+            if (action === 'create') {
+                document.getElementById('create-form').style.display = 'block';
+            } else if (action === 'review') {
+                document.getElementById('review-form').style.display = 'block';
+            } else if (action === 'cancel') {
+                document.getElementById('cancel-form').style.display = 'block';
+            }
         }
     </script>
 </body>
