@@ -71,6 +71,39 @@ def meu_portal():
     # Passar as categorias e documentos para o template
     return render_template('meu_portal.html', categorias=categorias, documentos=documentos)
 
+# Rota para tarefas pendentes
+@app.route('/minhas-tarefas-pendentes')
+def minhas_tarefas_pendentes():
+    # Conectar ao banco de dados
+    conn = connect_to_db()
+    if conn is None:
+        return "Erro ao conectar ao banco de dados."
+    
+    cursor = conn.cursor(dictionary=True)
+
+    # Buscar tarefas existentes no banco de dados
+    cursor.execute("""
+        SELECT 
+            WA.id, 
+            W.form_id, 
+            W.status AS workflow_status, 
+            W.tipo_workflow
+        FROM 
+            WORKFLOW_ATIVIDADES WA
+        INNER JOIN 
+            WORKFLOW W ON WA.workflow_id = W.id
+        WHERE 
+            WA.status = 'PENDENTE'
+    """)
+    tarefas = cursor.fetchall()
+
+    # Fechar a conexão
+    cursor.close()
+    conn.close()
+
+    # Passar as tarefas para o template
+    return render_template('minhas_tarefas.html', tarefas=tarefas)
+
 
 # Rota para inserir documento no MySQL
 @app.route('/inserir-documento', methods=['POST'])
@@ -117,7 +150,7 @@ def inserir_documento():
 
     return redirect(url_for('meu_portal'))
 
-# Rota para Iniciar uma revisão
+# Rota para iniciar uma revisão
 @app.route('/revisar-documento', methods=['POST'])
 def revisar_documento():
     identificador = request.form['identificador']
@@ -152,18 +185,32 @@ def revisar_documento():
             """
             cursor.execute(query_update_documento, (documento['CDDOCUMENT'],))
             
+            # Inserir uma nova entrada no workflow para a revisão
+            cursor.execute(""" 
+                INSERT INTO WORKFLOW (form_id, status, tipo_workflow) VALUES (%s, 'PENDENTE', 'revisão')
+            """, (identificador,))
+            workflow_id = cursor.lastrowid
+            
+            # Definir usuário aprovador
+            usuario_aprovador = 1
+            cursor.execute(""" 
+                INSERT INTO WORKFLOW_ATIVIDADES (workflow_id, usuario_id, status)
+                VALUES (%s, %s, 'PENDENTE')
+            """, (workflow_id, usuario_aprovador))
+            
             conn.commit()
             cursor.close()
             conn.close()
-            print("Documento revisado com sucesso.")
+            print("Revisão iniciada com sucesso.")
         else:
             print("Documento não encontrado.")
             return "Documento não encontrado."
     except Exception as e:
-        print(f"Erro ao revisar documento: {e}")
-        return "Erro ao revisar documento."
+        print(f"Erro ao iniciar revisão: {e}")
+        return "Erro ao iniciar revisão."
 
     return redirect(url_for('meu_portal'))
+
 
 # Rota para iniciar um cancelamento
 @app.route('/iniciar-cancelamento', methods=['POST'])
@@ -177,7 +224,7 @@ def iniciar_cancelamento():
 
         # Inserir uma nova entrada no workflow para o cancelamento com o motivo
         cursor.execute(""" 
-            INSERT INTO WORKFLOW (form_id, status, motivo) VALUES (%s, 'CANCELAMENTO PENDENTE', %s)
+            INSERT INTO WORKFLOW (form_id, status, motivo, tipo_workflow) VALUES (%s, 'PENDENTE', %s, 'cancelamento')
         """, (identificador, motivo))
         workflow_id = cursor.lastrowid
         
@@ -195,70 +242,6 @@ def iniciar_cancelamento():
     except Exception as e:
         print(f"Erro ao iniciar cancelamento: {e}")
         return "Erro ao iniciar cancelamento."
-
-    return redirect(url_for('meu_portal'))
-
-
-# Rota para aprovar uma revisão
-@app.route('/aprovar-revisao', methods=['POST'])
-def aprovar_revisao():
-    identificador = request.form['identificador']
-
-    try:
-        conn = connect_to_db()
-        cursor = conn.cursor()
-
-        # Atualizar o documento antigo para CURRENT = 2
-        query_update_antigo = """
-        UPDATE DCDOCUMENT
-        SET CURRENT = 2
-        WHERE IDDOCUMENT = %s AND CURRENT = 1
-        """
-        cursor.execute(query_update_antigo, (identificador,))
-
-        # Atualizar o novo documento para HOMOLOGADO e CURRENT = 1
-        query_update_novo = """
-        UPDATE DCDOCUMENT
-        SET STATUS = 'HOMOLOGADO', CURRENT = 1
-        WHERE IDDOCUMENT = %s AND CURRENT = 2
-        """
-        cursor.execute(query_update_novo, (identificador,))
-
-        conn.commit()
-        cursor.close()
-        conn.close()
-        print("Revisão aprovada com sucesso.")
-    except Exception as e:
-        print(f"Erro ao aprovar revisão: {e}")
-        return "Erro ao aprovar revisão."
-
-    return redirect(url_for('meu_portal'))
-
-
-# Rota pra aprovar um cancelamento
-@app.route('/aprovar-cancelamento', methods=['POST'])
-def aprovar_cancelamento():
-    identificador = request.form['identificador']
-
-    try:
-        conn = connect_to_db()
-        cursor = conn.cursor()
-
-        # Atualizar o documento para CANCELADO e CURRENT = 2
-        query_update_cancelamento = """
-        UPDATE DCDOCUMENT
-        SET STATUS = 'CANCELADO', CURRENT = 2
-        WHERE IDDOCUMENT = %s AND CURRENT = 1
-        """
-        cursor.execute(query_update_cancelamento, (identificador,))
-
-        conn.commit()
-        cursor.close()
-        conn.close()
-        print("Cancelamento aprovado com sucesso.")
-    except Exception as e:
-        print(f"Erro ao aprovar cancelamento: {e}")
-        return "Erro ao aprovar cancelamento."
 
     return redirect(url_for('meu_portal'))
 
@@ -377,20 +360,20 @@ def aprovar_reprovar(atividade_id):
     cursor.execute(""" 
         SELECT workflow_id FROM WORKFLOW_ATIVIDADES WHERE id = %s
     """, (atividade_id,))
-    workflow_id = cursor.fetchone()[0]  # Acesso correto
+    workflow_id = cursor.fetchone()[0]
 
     # Verifica quantas atividades estão pendentes
     cursor.execute(""" 
         SELECT COUNT(*) as pendentes FROM WORKFLOW_ATIVIDADES WHERE workflow_id = %s AND status = 'PENDENTE'
     """, (workflow_id,))
-    pendentes = cursor.fetchone()[0]  # Acesso correto
+    pendentes = cursor.fetchone()[0]
 
     if pendentes == 0:
         # Verifica quantas atividades estão aprovadas
         cursor.execute(""" 
             SELECT COUNT(*) as aprovadas FROM WORKFLOW_ATIVIDADES WHERE workflow_id = %s AND status = 'APROVADO'
         """, (workflow_id,))
-        aprovadas = cursor.fetchone()[0]  # Acesso correto
+        aprovadas = cursor.fetchone()[0]
         
         # Atualiza o status do workflow
         novo_status = 'APROVADO' if aprovadas > 0 else 'REPROVADO'
@@ -398,17 +381,40 @@ def aprovar_reprovar(atividade_id):
             UPDATE WORKFLOW SET status = %s WHERE id = %s
         """, (novo_status, workflow_id))
 
-        # Atualiza o CURRENT do documento para 1 quando aprovado
-        cursor.execute("""
-            UPDATE DCDOCUMENT SET CURRENT = 1 WHERE IDDOCUMENT = (SELECT form_id FROM WORKFLOW WHERE id = %s)
+        # Obtém o tipo de workflow (criação, revisão ou cancelamento)
+        cursor.execute(""" 
+            SELECT form_id, tipo_workflow FROM WORKFLOW WHERE id = %s
         """, (workflow_id,))
+        workflow = cursor.fetchone()
+        form_id = workflow[0]
+        tipo_workflow = workflow[1]
+
+        if novo_status == 'APROVADO':
+            if tipo_workflow == 'criação':
+                # Atualiza o CURRENT e STATUS do documento para criação
+                cursor.execute("""
+                    UPDATE DCDOCUMENT SET CURRENT = 1, STATUS = 'HOMOLOGADO' WHERE IDDOCUMENT = %s
+                """, (form_id,))
+            elif tipo_workflow == 'revisão':
+                # Atualiza o CURRENT e STATUS do documento para revisão
+                cursor.execute("""
+                    UPDATE DCDOCUMENT SET CURRENT = 1, STATUS = 'HOMOLOGADO' WHERE IDDOCUMENT = %s
+                """, (form_id,))
+                # Atualiza o documento antigo para CURRENT = 2
+                cursor.execute("""
+                    UPDATE DCDOCUMENT SET CURRENT = 2 WHERE IDDOCUMENT = %s AND CURRENT = 1
+                """, (form_id,))
+            elif tipo_workflow == 'cancelamento':
+                # Atualiza o CURRENT e STATUS do documento para cancelamento
+                cursor.execute("""
+                    UPDATE DCDOCUMENT SET CURRENT = 2, STATUS = 'CANCELADO' WHERE IDDOCUMENT = %s
+                """, (form_id,))
 
     conn.commit()
     cursor.close()
     conn.close()
-    
-    flash(f'Atividade {status} com sucesso!')
-    return redirect(url_for('minhas_tarefas'))
+    return redirect(url_for('meu_portal'))
+
 
 
 # Rota para a pesquisa de documentos

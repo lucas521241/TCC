@@ -24,8 +24,35 @@
     <!-- Lista de Tarefas -->
 
     <div class="tasks-container">
+        <h2>Criação de Documentos</h2>
         <ul>
-            {% for tarefa in tarefas %}
+            {% for tarefa in tarefas if tarefa['tipo_workflow'] == 'criação' %}
+                <li>
+                    Documento: {{ tarefa['form_id'] }} - Status do Workflow: {{ tarefa['workflow_status'] }}
+                    <form action="/aprovar_reprovar/{{ tarefa['id'] }}" method="POST" style="display: inline;">
+                        <button type="submit" name="status" value="APROVADO" class="approve-button">Aprovar</button>
+                        <button type="submit" name="status" value="REPROVADO" class="reject-button">Reprovar</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <h2>Revisão de Documentos</h2>
+        <ul>
+            {% for tarefa in tarefas if tarefa['tipo_workflow'] == 'revisão' %}
+                <li>
+                    Documento: {{ tarefa['form_id'] }} - Status do Workflow: {{ tarefa['workflow_status'] }}
+                    <form action="/aprovar_reprovar/{{ tarefa['id'] }}" method="POST" style="display: inline;">
+                        <button type="submit" name="status" value="APROVADO" class="approve-button">Aprovar</button>
+                        <button type="submit" name="status" value="REPROVADO" class="reject-button">Reprovar</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <h2>Cancelamento de Documentos</h2>
+        <ul>
+            {% for tarefa in tarefas if tarefa['tipo_workflow'] == 'cancelamento' %}
                 <li>
                     Documento: {{ tarefa['form_id'] }} - Status do Workflow: {{ tarefa['workflow_status'] }}
                     <form action="/aprovar_reprovar/{{ tarefa['id'] }}" method="POST" style="display: inline;">
