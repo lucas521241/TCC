@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, current_user, login_required, UserMixin
 from datetime import datetime
+from werkzeug.utils import secure_filename
 import mysql.connector
 import bcrypt
 import os
@@ -45,6 +46,17 @@ def connect_to_db():
     except mysql.connector.Error as err:
         print(f"Erro: {err}")
         return None
+    
+# Diretório para armazenar os arquivos PDF
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = os.path.join(PROJECT_DIR, "upload_files")
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['ALLOWED_EXTENSIONS'] = {'pdf'}
+
+
+# Função para verificar se o arquivo que foi feito upload é PDF
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']    
 
 # Rota inicial do portal
 @app.route('/meu-portal')
@@ -105,18 +117,31 @@ def minhas_tarefas_pendentes():
     return render_template('minhas_tarefas.html', tarefas=tarefas)
 
 
-# Rota para inserir documento no MySQL
-@app.route('/inserir-documento', methods=['POST'])
+# Rota para inserir documento no banco e PDF
+@app.route('/inserir-documento', methods=['GET', 'POST'])
 def inserir_documento():
-    identificador = request.form['identificador']  # IDDOCUMENT como string
-    nome_documento = request.form['nome_documento']
-    category = request.form['categoria'] 
+    identificador = request.form['identificadorCriacao']
+    nome_documento = request.form['nome_documentoCriacao']
+    category = request.form['categoriaCriacao'] 
     autor = current_user.name_user  # Redator é o nome do usuário logado
-    
-    # Defina o valor padrão para CURRENT
-    current_status = 2 
+    current_status = 2 # por padrão é 2, depois se aprovado vira 1
 
-    # Inserção no MySQL
+    # Verifica se tem arquivo e tá em PDF
+    if 'file' not in request.files:
+        flash("Nenhum arquivo enviado.")
+        return redirect(request.url)
+
+    file = request.files['file']
+    if file.filename == '':
+        flash("Nenhum arquivo selecionado.")
+        return redirect(request.url)
+    
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+
+    # Inserção no banco MYSQL
     try:
         conn = connect_to_db()
         cursor = conn.cursor()
@@ -126,8 +151,16 @@ def inserir_documento():
         VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
         cursor.execute(query_insert_documento, (identificador, nome_documento, category, 0, current_status, autor, 'EMISSÃO'))
+        cddocument = cursor.lastrowid # feito pra pegar o ultido identificado (cddocument) gerado automaticamente
+
+        # Associa o arquivo PDF no documento da tabela DCFILE
+        query_insert_file = """
+        INSERT INTO DCFILE (FILENAME, FILEPATH, CDDOCUMENT)
+        VALUES (%s, %s, %s)
+        """
+        cursor.execute(query_insert_file, (filename, filepath, cddocument))
         
-        # Criar um novo Workflow no MySQL
+        # Criar um novo Workflow no banco MySQL
         cursor.execute(""" 
             INSERT INTO WORKFLOW (form_id, status) VALUES (%s, 'PENDENTE')
         """, (identificador,))
@@ -143,74 +176,136 @@ def inserir_documento():
         conn.commit()
         cursor.close()
         conn.close()
-        print("Documento e Workflow criados no banco de dados com sucesso.")
+        flash("Documento e arquivo PDF inseridos com sucesso!", "success")
     except Exception as e:
-        print(f"Erro ao inserir documento e criar workflow no banco de dados: {e}")
-        return "Erro ao inserir documento e criar workflow no banco de dados."
+        print(f"Erro ao inserir documento e arquivo: {e}")
+        return "Erro ao inserir documento e arquivo no banco de dados."
+
+    else:
+        flash("Apenas arquivos PDF são permitidos.", "danger")
 
     return redirect(url_for('meu_portal'))
 
-# Rota para iniciar uma revisão
-@app.route('/revisar-documento', methods=['POST'])
+# Rota para revisar documento
+@app.route('/revisar-documento', methods=['GET', 'POST'])
 def revisar_documento():
-    identificador = request.form['identificador']
-    nome_documento = request.form['nome_documento']
-    category = request.form['categoria']
-    autor = current_user.name_user
+    if request.method == 'GET':
+        categorias = obter_categorias()
+        documentos = obter_documentos()
+        return render_template('meu_portal.html', categorias=categorias, documentos=documentos)
 
+    if request.method == 'POST':
+        identificador = request.form['identificador']
+        nome_documento = request.form['nome_documento']
+        category = request.form['categoria']
+        autor = current_user.name_user  # Redator é o nome do usuário logado
+
+        if 'pdf_file' not in request.files:
+            flash("Nenhum arquivo enviado.")
+            return redirect(request.url)
+
+        file = request.files['pdf_file']
+        if file.filename == '':
+            flash("Nenhum arquivo selecionado.")
+            return redirect(request.url)
+
+        if not (file and allowed_file(file.filename)):
+            flash("Apenas arquivos PDF são permitidos.", "danger")
+            return redirect(request.url)
+
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+
+        try:
+            conn = connect_to_db()
+            cursor = conn.cursor(dictionary=True)
+
+            query_select_documento = """
+            SELECT * FROM DCDOCUMENT
+            WHERE IDDOCUMENT = %s AND CURRENT = 1
+            """
+            cursor.execute(query_select_documento, (identificador,))
+            documento = cursor.fetchone()
+
+            if documento:
+                nova_revisao = documento['REVISION'] + 1
+                query_insert_documento = """
+                INSERT INTO DCDOCUMENT (IDDOCUMENT, NMDOCUMENT, CATEGORY, REVISION, CURRENT, REDATOR, STATUS)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """
+                cursor.execute(query_insert_documento, (identificador, nome_documento, category, nova_revisao, 1, autor, 'REVISÃO'))
+                cddocument = cursor.lastrowid
+
+                query_insert_file = """
+                INSERT INTO DCFILE (FILENAME, FILEPATH, CDDOCUMENT)
+                VALUES (%s, %s, %s)
+                """
+                cursor.execute(query_insert_file, (filename, filepath, cddocument))
+
+                query_update_documento = """
+                UPDATE DCDOCUMENT
+                SET CURRENT = 2
+                WHERE CDDOCUMENT = %s
+                """
+                cursor.execute(query_update_documento, (documento['CDDOCUMENT'],))
+
+                cursor.execute(""" 
+                    INSERT INTO WORKFLOW (form_id, status, tipo_workflow) VALUES (%s, 'PENDENTE', 'revisão')
+                """, (identificador,))
+                workflow_id = cursor.lastrowid
+
+                usuario_aprovador = 1
+                cursor.execute(""" 
+                    INSERT INTO WORKFLOW_ATIVIDADES (workflow_id, usuario_id, status)
+                    VALUES (%s, %s, 'PENDENTE')
+                """, (workflow_id, usuario_aprovador))
+
+                conn.commit()
+                cursor.close()
+                conn.close()
+                flash("Revisão do documento e upload do PDF registrados com sucesso.", "success")
+            else:
+                print(f"Documento com ID {identificador} não encontrado.")
+                flash("Documento não encontrado.", "danger")
+                return redirect(request.url)
+        except Exception as e:
+            print(f"Erro ao iniciar revisão: {e}")
+            flash("Erro ao iniciar revisão.", "danger")
+            return redirect(url_for('meu_portal'))
+
+        return redirect(url_for('meu_portal'))
+
+
+# Função para obter as categorias
+def obter_categorias():
     try:
         conn = connect_to_db()
         cursor = conn.cursor(dictionary=True)
-
-        query_select_documento = """
-        SELECT * FROM DCDOCUMENT
-        WHERE IDDOCUMENT = %s AND CURRENT = 1
-        """
-        cursor.execute(query_select_documento, (identificador,))
-        documento = cursor.fetchone()
-
-        if documento:
-            nova_revisao = documento['REVISION'] + 1
-
-            query_insert_documento = """
-            INSERT INTO DCDOCUMENT (IDDOCUMENT, NMDOCUMENT, CATEGORY, REVISION, CURRENT, REDATOR, STATUS, DCREVISION)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """
-            cursor.execute(query_insert_documento, (identificador, nome_documento, category, nova_revisao, 1, autor, 'REVISÃO', nova_revisao))
-            
-            query_update_documento = """
-            UPDATE DCDOCUMENT
-            SET CURRENT = 2
-            WHERE CDDOCUMENT = %s
-            """
-            cursor.execute(query_update_documento, (documento['CDDOCUMENT'],))
-            
-            # Inserir uma nova entrada no workflow para a revisão
-            cursor.execute(""" 
-                INSERT INTO WORKFLOW (form_id, status, tipo_workflow) VALUES (%s, 'PENDENTE', 'revisão')
-            """, (identificador,))
-            workflow_id = cursor.lastrowid
-            
-            # Definir usuário aprovador
-            usuario_aprovador = 1
-            cursor.execute(""" 
-                INSERT INTO WORKFLOW_ATIVIDADES (workflow_id, usuario_id, status)
-                VALUES (%s, %s, 'PENDENTE')
-            """, (workflow_id, usuario_aprovador))
-            
-            conn.commit()
-            cursor.close()
-            conn.close()
-            print("Revisão iniciada com sucesso.")
-        else:
-            print("Documento não encontrado.")
-            return "Documento não encontrado."
+        query = "SELECT IDENTIFIER, IDCATEGORY FROM DCCATEGORY"
+        cursor.execute(query)
+        categorias = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return categorias
     except Exception as e:
-        print(f"Erro ao iniciar revisão: {e}")
-        return "Erro ao iniciar revisão."
+        print(f"Erro ao obter categorias: {e}")
+        return []
 
-    return redirect(url_for('meu_portal'))
-
+# Função para obter os documentos
+def obter_documentos():
+    try:
+        conn = connect_to_db()
+        cursor = conn.cursor(dictionary=True)
+        query = "SELECT IDDOCUMENT, CDDOCUMENT FROM DCDOCUMENT WHERE CURRENT = 1"
+        cursor.execute(query)
+        documentos = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return documentos
+    except Exception as e:
+        print(f"Erro ao obter documentos: {e}")
+        return []
 
 # Rota para iniciar um cancelamento
 @app.route('/iniciar-cancelamento', methods=['POST'])
@@ -291,7 +386,7 @@ def load_user(user_id):
     conn.close()
 
     if user_data:
-        return User(user_data['ID'], user_data['NAME_USER'])  # Use 'ID' com maiúscula para corresponder à tabela
+        return User(user_data['ID'], user_data['NAME_USER'])
     return None
 
 # Rota para a página de registro
@@ -320,6 +415,7 @@ def register_route():
 
 # Página inicial após login
 @app.route('/home', methods=['GET'])
+@login_required
 def home():
     return render_template('home.html')
 
@@ -445,12 +541,6 @@ def pesquisa_documentos():
 
     return render_template('pesquisa_documentos.html', documentos=documentos, mensagem=mensagem)
 
-
-
-# Rota para página de configurações
-@app.route('/configuracoes')
-def configuracoes():
-    return render_template('configuracoes.html')
 
 # Executar o app Flask
 if __name__ == '__main__':

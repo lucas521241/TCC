@@ -30,75 +30,87 @@
         <option value="cancel">Cancelar Documento</option>
     </select>
 
-    <!-- Formulário de criação de documento -->
-    <div class="form-container" id="create-form" style="display: none;">
-        <form id="document-form" action="/inserir-documento" method="POST">
-            <h2>Criar Documento</h2>
-            
-            <label for="identificador">Identificador:</label>
-            <input type="text" id="identificador" name="identificador" required>
+<!-- Formulário de criação de documento -->
+<div class="form-container" id="create-form" style="display: none;">
+    <form id="document-form" action="/inserir-documento" method="POST" enctype="multipart/form-data">
+        <h2>Criar Documento</h2>
+        
+        <label for="identificador">Identificador:</label>
+        <input type="text" id="identificador" name="identificadorCriacao" required>
 
-            <label for="nome-documento">Nome do Documento:</label>
-            <input type="text" id="nome-documento" name="nome_documento" required>
+        <label for="nome-documento">Nome do Documento:</label>
+        <input type="text" id="nome-documento" name="nome_documentoCriacao" required>
 
-            <label for="categoria">Categoria:</label>
-            <select id="categoria" name="categoria" required>
-                {% for categoria in categorias %}
-                    <option value="{{ categoria.IDCATEGORY }}">{{ categoria.IDENTIFIER }}</option>
-                {% endfor %}
-            </select>
+        <label for="categoria">Categoria:</label>
+        <select id="categoria" name="categoriaCriacao" required>
+            <option value="" disabled selected>Selecione uma categoria</option>
+            {% for categoria in categorias %}
+                <option value="{{ categoria.IDCATEGORY }}">{{ categoria.IDENTIFIER }}</option>
+            {% endfor %}
+        </select>
 
-            <input type="hidden" id="autor" name="autor" value="{{ current_user.NAME_USER }}">
-            <input type="hidden" id="current" name="current" value="1"> <!-- Para definir o status atual -->
+        <label for="pdf-file">Arquivo PDF:</label>
+        <input type="file" id="pdf-file" name="pdf_file" accept="application/pdf" required>
 
-            <button type="submit" id="submit-btn">Enviar para Aprovação</button>
-        </form>
-    </div>
+        <input type="hidden" id="autor" name="autor" value="{{ current_user.NAME_USER }}">
+        <input type="hidden" id="current" name="current" value="1">
 
-    <!-- Formulário de cancelar documento -->
-    <div class="form-container" id="cancel-form" style="display: none;">
-        <form id="cancel-document-form" action="/cancelar-documento" method="POST">
-            <h2>Cancelar Documento</h2>
-            
-            <label for="identificador-cancel">Identificador:</label>
-            <select id="identificador-cancel" name="identificador" required>
-                {% for documento in documentos %}
-                    <option value="{{ documento.CDDOCUMENT }}">{{ documento.IDDOCUMENT }}</option>
-                {% endfor %}
-            </select>
+        <button type="submit" id="submit-btn">Enviar para Aprovação</button>
+    </form>
+</div>
 
-            <label for="motivo-cancel">Motivo:</label>
-            <textarea id="motivo-cancel" name="motivo" required></textarea>
+<!-- Formulário de revisão de documento -->
+<div class="form-container" id="review-form" style="display: none;">
+    <form id="review-document-form" action="/revisar-documento" method="POST" enctype="multipart/form-data">
+        <h2>Revisar Documento</h2>
+        
+        <label for="identificador-review">Identificador:</label>
+        <select id="identificador-review" name="identificador" required>
+            <option value="" disabled selected>Selecione um identificador</option>
+            {% for documento in documentos %}
+                <option value="{{ documento.CDDOCUMENT }}">{{ documento.IDDOCUMENT }}</option>
+            {% endfor %}
+        </select>
 
-            <button type="submit" id="cancel-btn">Cancelar Documento</button>
-        </form>
-    </div>
+        <label for="nome-documento-review">Nome do Documento:</label>
+        <input type="text" id="nome-documento-review" name="nome_documento" placeholder="Digite o nome do documento" required>
 
-    <!-- Formulário de revisar documento -->
-    <div class="form-container" id="review-form" style="display: none;">
-        <form id="review-document-form" action="/revisar-documento" method="POST">
-            <h2>Revisar Documento</h2>
-            
-            <label for="identificador-review">Identificador:</label>
-            <select id="identificador-review" name="identificador" required>
-                {% for documento in documentos %}
-                    <option value="{{ documento.CDDOCUMENT }}">{{ documento.IDDOCUMENT }}</option>
-                {% endfor %}
-            </select>
+        <label for="categoria-review">Categoria:</label>
+        <select id="categoria-review" name="categoria" required>
+            <option value="" disabled selected>Selecione uma categoria</option>
+            {% for categoria in categorias %}
+                <option value="{{ categoria.IDCATEGORY }}">{{ categoria.IDENTIFIER }}</option>
+            {% endfor %}
+        </select>
 
-            <label for="nome-documento-review">Nome do Documento:</label>
-            <input type="text" id="nome-documento-review" name="nome_documento" required>
+        <label for="pdf-file-review">Arquivo PDF:</label>
+        <input type="file" id="pdf-file-review" name="pdf_file" accept="application/pdf" required>
 
-            <label for="categoria-review">Categoria:</label>
-            <select id="categoria-review" name="categoria" required>
-                {% for categoria in categorias %}
-                    <option value="{{ categoria.IDCATEGORY }}">{{ categoria.IDENTIFIER }}</option>
-                {% endfor %}
-            </select>
+        <button type="submit" id="review-btn">Revisar Documento</button>
+    </form>
+</div>
 
-            <button type="submit" id="review-btn">Revisar Documento</button>
-        </form>
-    </div>
+
+<!-- Formulário de cancelar documento -->
+<div class="form-container" id="cancel-form" style="display: none;">
+    <form id="cancel-document-form" action="/cancelar-documento" method="POST">
+        <h2>Cancelar Documento</h2>
+        
+        <label for="identificador-cancel">Identificador:</label>
+        <select id="identificador-cancel" name="identificador" required>
+            <option value="" disabled selected>Selecione um identificador</option>
+            {% for documento in documentos %}
+                <option value="{{ documento.CDDOCUMENT }}">{{ documento.IDDOCUMENT }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="motivo-cancel">Motivo:</label>
+        <textarea id="motivo-cancel" name="motivo" placeholder="Descreva o motivo do cancelamento" required></textarea>
+
+        <button type="submit" id="cancel-btn">Cancelar Documento</button>
+    </form>
+</div>
+
 
     <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
     <script>
