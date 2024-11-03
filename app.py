@@ -120,71 +120,82 @@ def minhas_tarefas_pendentes():
 # Rota para inserir documento no banco e PDF
 @app.route('/inserir-documento', methods=['GET', 'POST'])
 def inserir_documento():
-    identificador = request.form['identificadorCriacao']
-    nome_documento = request.form['nome_documentoCriacao']
-    category = request.form['categoriaCriacao'] 
-    autor = current_user.name_user  # Redator é o nome do usuário logado
-    current_status = 2 # por padrão é 2, depois se aprovado vira 1
+    if request.method == 'POST':
+        print(request.form)  # Linha para depuração
 
-    # Verifica se tem arquivo e tá em PDF
-    if 'file' not in request.files:
-        flash("Nenhum arquivo enviado.")
-        return redirect(request.url)
+        # Obtenha os dados do formulário com tratamento para chaves ausentes
+        identificador = request.form.get('identificadorCriacao')
+        nome_documento = request.form.get('nome_documentoCriacao')
+        category = request.form.get('categoriaCriacao')
+        autor = current_user.name_user  # Redator é o nome do usuário logado
+        current_status = 2  # Por padrão é 2, depois se aprovado vira 1
 
-    file = request.files['file']
-    if file.filename == '':
-        flash("Nenhum arquivo selecionado.")
-        return redirect(request.url)
-    
-    if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(filepath)
+        # Verifica se todos os campos obrigatórios estão preenchidos
+        if not identificador or not nome_documento or not category:
+            flash("Todos os campos são obrigatórios.", "danger")
+            return redirect(request.url)
 
-    # Inserção no banco MYSQL
-    try:
-        conn = connect_to_db()
-        cursor = conn.cursor()
+        # Verifica se tem arquivo e está em PDF
+        if 'file' not in request.files:
+            flash("Nenhum arquivo enviado.")
+            return redirect(request.url)
 
-        query_insert_documento = """
-        INSERT INTO DCDOCUMENT (IDDOCUMENT, NMDOCUMENT, CATEGORY, REVISION, CURRENT, REDATOR, STATUS)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """
-        cursor.execute(query_insert_documento, (identificador, nome_documento, category, 0, current_status, autor, 'EMISSÃO'))
-        cddocument = cursor.lastrowid # feito pra pegar o ultido identificado (cddocument) gerado automaticamente
+        file = request.files['file']
+        if file.filename == '':
+            flash("Nenhum arquivo selecionado.")
+            return redirect(request.url)
 
-        # Associa o arquivo PDF no documento da tabela DCFILE
-        query_insert_file = """
-        INSERT INTO DCFILE (FILENAME, FILEPATH, CDDOCUMENT)
-        VALUES (%s, %s, %s)
-        """
-        cursor.execute(query_insert_file, (filename, filepath, cddocument))
-        
-        # Criar um novo Workflow no banco MySQL
-        cursor.execute(""" 
-            INSERT INTO WORKFLOW (form_id, status) VALUES (%s, 'PENDENTE')
-        """, (identificador,))
-        workflow_id = cursor.lastrowid
-        
-        # Definir usuário aprovador 
-        usuario_aprovador = 1  # ID do usuário aprovador
-        cursor.execute(""" 
-            INSERT INTO WORKFLOW_ATIVIDADES (workflow_id, usuario_id, status)
-            VALUES (%s, %s, 'PENDENTE')
-        """, (workflow_id, usuario_aprovador))
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-        flash("Documento e arquivo PDF inseridos com sucesso!", "success")
-    except Exception as e:
-        print(f"Erro ao inserir documento e arquivo: {e}")
-        return "Erro ao inserir documento e arquivo no banco de dados."
+        if file and allowed_file(file.filename):  # Certifique-se de que allowed_file verifica a extensão corretamente
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
 
-    else:
-        flash("Apenas arquivos PDF são permitidos.", "danger")
+            # Inserção no banco MySQL
+            try:
+                conn = connect_to_db()
+                cursor = conn.cursor()
 
-    return redirect(url_for('meu_portal'))
+                query_insert_documento = """
+                INSERT INTO DCDOCUMENT (IDDOCUMENT, NMDOCUMENT, CATEGORY, REVISION, CURRENT, REDATOR, STATUS)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """
+                cursor.execute(query_insert_documento, (identificador, nome_documento, category, 0, current_status, autor, 'EMISSÃO'))
+                cddocument = cursor.lastrowid  # Pega o último ID gerado automaticamente
+
+                # Associa o arquivo PDF no documento da tabela DCFILE
+                query_insert_file = """
+                INSERT INTO DCFILE (FILENAME, FILEPATH, CDDOCUMENT)
+                VALUES (%s, %s, %s)
+                """
+                cursor.execute(query_insert_file, (filename, filepath, cddocument))
+
+                # Criar um novo Workflow no banco MySQL
+                cursor.execute(""" 
+                    INSERT INTO WORKFLOW (form_id, status) VALUES (%s, 'PENDENTE')
+                """, (identificador,))
+                workflow_id = cursor.lastrowid
+
+                # Definir usuário aprovador 
+                usuario_aprovador = 1  # ID do usuário aprovador
+                cursor.execute(""" 
+                    INSERT INTO WORKFLOW_ATIVIDADES (workflow_id, usuario_id, status)
+                    VALUES (%s, %s, 'PENDENTE')
+                """, (workflow_id, usuario_aprovador))
+
+                conn.commit()
+                flash("Documento e arquivo PDF inseridos com sucesso!", "success")
+            except Exception as e:
+                print(f"Erro ao inserir documento e arquivo: {e}")
+                flash("Erro ao inserir documento e arquivo no banco de dados.", "danger")
+                conn.rollback()  # Rollback em caso de erro
+            finally:
+                cursor.close()
+                conn.close()
+        else:
+            flash("Apenas arquivos PDF são permitidos.", "danger")
+
+    return redirect(url_for('meu_portal'))  # Redireciona após o processamento
+
 
 # Rota para revisar documento
 @app.route('/revisar-documento', methods=['GET', 'POST'])

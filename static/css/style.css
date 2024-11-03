@@ -1,57 +1,67 @@
+/* Estilo para o background de toda a página */
 body {
     font-family: 'Arial', sans-serif;
-    background-color: #f4f4f4;
-    color: #333;
+    background-image: url('background.jpeg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed; /* Mantém o background fixo ao rolar */
+    color: white;
     margin: 0;
     padding: 0;
 }
 
+/* Estilo do container da barra de pesquisa */
 .search-toolbar-container {
     position: relative;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
 }
 
+/* Estilo do campo de input da barra de pesquisa */
 .search-toolbar {
-    padding: 10px 40px 10px 15px;
+    padding: 10px 35px 10px 15px; /* Ajuste o padding para dar mais espaço ao ícone */
     border: 1px solid #ccc;
     border-radius: 20px;
-    width: 200px;
+    width: 250px; /* Ajuste da largura */
 }
 
-.icon-search-toolbar {
+/* Estilo do container de busca centralizado */
+.search-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 50vh;
+}
+
+/* Campo de input de pesquisa dentro do search-container */
+.search {
+    width: 350px; /* Ajuste da largura */
+    padding: 10px 35px 10px 15px; /* Padding extra para o ícone à direita */
+    font-size: 16px;
+    text-align: center;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+}
+
+/* Ícone de pesquisa clicável para ambos os campos */
+.icon-search-toolbar, .icon-search {
     position: absolute;
     right: 10px;
     top: 50%;
     transform: translateY(-50%);
+    background: none;
+    border: none;
     color: #999;
-}
-
-.search-container {
-    display: flex;
-    justify-content: center;  
-    align-items: center;      
-    height: 30vh;           
-    margin: 0;
-}
-
-.search:focus {
-    border-color: #007bff;    
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0;
 }
 
 .icon-search {
-    position: absolute;
-    right: 15px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 18px;
-    color: #999;
+    right: 10px; /* Ajuste o posicionamento do ícone */
 }
 
-.icon-search::before {
-    content: '\f002';     
-    font-family: "Font Awesome 5 Free"; 
-    font-weight: 900;
-}
+
 
 .toolbar {
     display: flex;
@@ -180,13 +190,14 @@ input:focus {
     border-color: #007bff; 
 }
 
+/* Opacidade e estilo do banner */
 .banner {
-    background-image: url('sua-imagem-de-fundo.jpg'); 
-    background-size: cover;
-    background-position: center;
+    background-color: rgba(0, 0, 0, 0.6); /* Fundo escuro com opacidade reduzida */
     color: white;
     text-align: center;
     padding: 50px 0;
+    position: relative; /* Garante que o banner permaneça no fluxo normal */
+    z-index: 1; /* Certifica-se de que o texto do banner fica visível */
 }
 
 .hidden-form {
