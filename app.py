@@ -128,6 +128,8 @@ def inserir_documento():
         nome_documento = request.form.get('nome_documentoCriacao')
         category = request.form.get('categoriaCriacao')
         autor = request.form.get('autor')
+        solicitante = request.form.get('autor')
+        motivo = request.form.get('motivo')
         current_status = 2  # Por padrão é 2, depois se aprovado vira 1
 
         # Verifica se todos os campos obrigatórios estão preenchidos
@@ -171,8 +173,8 @@ def inserir_documento():
 
                 # Criar um novo Workflow no banco MySQL
                 cursor.execute(""" 
-                    INSERT INTO WORKFLOW (form_id, status) VALUES (%s, 'PENDENTE')
-                """, (identificador,))
+                    INSERT INTO WORKFLOW (form_id, status, MOTIVO, tipo_workflow) VALUES (%s, 'PENDENTE', %s, 'revisão', %s)
+                """, (identificador, motivo, solicitante))
                 workflow_id = cursor.lastrowid
 
                 # Definir usuário aprovador 
@@ -209,7 +211,9 @@ def revisar_documento():
         identificador = request.form['identificador']
         nome_documento = request.form['nome_documento']
         category = request.form['categoria']
-        autor = current_user.id  # Redator é o nome do usuário logado
+        autor = request.form.get('autor')
+        motivo = request.form.get('motivo')
+        solicitante = request.form.get('autor')
 
         if 'pdf_file' not in request.files:
             flash("Nenhum arquivo enviado.")
@@ -262,8 +266,8 @@ def revisar_documento():
                 cursor.execute(query_update_documento, (documento['CDDOCUMENT'],))
 
                 cursor.execute(""" 
-                    INSERT INTO WORKFLOW (form_id, status, tipo_workflow) VALUES (%s, 'PENDENTE', 'revisão')
-                """, (identificador,))
+                    INSERT INTO WORKFLOW (form_id, status, motivo ,tipo_workflow) VALUES (%s, 'PENDENTE', %s, 'revisão', %s)
+                """, (identificador, motivo, solicitante))
                 workflow_id = cursor.lastrowid
 
                 usuario_aprovador = 1
@@ -323,6 +327,7 @@ def obter_documentos():
 def iniciar_cancelamento():
     identificador = request.form['identificador']
     motivo = request.form['motivo']
+    solicitante = request.form.get('autor')
 
     try:
         conn = connect_to_db()
@@ -330,8 +335,8 @@ def iniciar_cancelamento():
 
         # Inserir uma nova entrada no workflow para o cancelamento com o motivo
         cursor.execute(""" 
-            INSERT INTO WORKFLOW (form_id, status, motivo, tipo_workflow) VALUES (%s, 'PENDENTE', %s, 'cancelamento')
-        """, (identificador, motivo))
+            INSERT INTO WORKFLOW (form_id, status, motivo, tipo_workflow, solicitante) VALUES (%s, 'PENDENTE', %s, 'cancelamento', %s)
+        """, (identificador, motivo, solicitante))
         workflow_id = cursor.lastrowid
         
         # Definir usuário aprovador
