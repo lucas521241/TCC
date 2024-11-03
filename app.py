@@ -127,11 +127,11 @@ def inserir_documento():
         identificador = request.form.get('identificadorCriacao')
         nome_documento = request.form.get('nome_documentoCriacao')
         category = request.form.get('categoriaCriacao')
-        autor = current_user.name_user  # Redator é o nome do usuário logado
+        autor = request.form.get('autor')
         current_status = 2  # Por padrão é 2, depois se aprovado vira 1
 
         # Verifica se todos os campos obrigatórios estão preenchidos
-        if not identificador or not nome_documento or not category:
+        if not identificador or not nome_documento or not category or not autor:
             flash("Todos os campos são obrigatórios.", "danger")
             return redirect(request.url)
 
@@ -209,7 +209,7 @@ def revisar_documento():
         identificador = request.form['identificador']
         nome_documento = request.form['nome_documento']
         category = request.form['categoria']
-        autor = current_user.name_user  # Redator é o nome do usuário logado
+        autor = current_user.id  # Redator é o nome do usuário logado
 
         if 'pdf_file' not in request.files:
             flash("Nenhum arquivo enviado.")

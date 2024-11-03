@@ -50,9 +50,9 @@
         </select>
 
         <label for="pdf-file">Arquivo PDF:</label>
-        <input type="file" id="pdf-file" name="pdf_file" accept="application/pdf" required>
+        <input type="file" id="pdf-file" name="file" accept="application/pdf" required>
 
-        <input type="hidden" id="autor" name="autor" value="{{ current_user.NAME_USER }}">
+        <input type="hidden" id="autor" name="autor" value="{{ current_user.id }}">
         <input type="hidden" id="current" name="current" value="1">
 
         <button type="submit" id="submit-btn">Enviar para Aprovação</button>

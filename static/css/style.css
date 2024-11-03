@@ -105,12 +105,17 @@ ul {
 }
 
 li {
-    background: white;      /* Fundo branco para cada item */
+    background: rgba(0, 0, 0, 0.5);  /* Fundo preto com 50% de opacidade */
     margin: 10px;          /* Margem entre os itens */
     padding: 10px;         /* Preenchimento interno */
     border-radius: 5px;     /* Bordas arredondadas */
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Sombra dos itens */
     transition: transform 0.3s; /* Transição suave */
+}
+
+li * {
+    color: white;           /* Cor do texto em branco */
+    opacity: 1;            /* Garantir que o texto não tenha opacidade */
 }
 
 li:hover {
@@ -143,6 +148,19 @@ button:active {
     justify-content: center;
     height: 100vh;
     background-color: #f4f4f4;
+}
+
+.login-container p {
+    color: black; /* Define a cor do texto do parágrafo como preto */
+}
+
+.login-container a {
+    color: black; /* Define a cor do texto do link como preto */
+    text-decoration: underline; /* Opcional: adicionar sublinhado ao link */
+}
+
+.login-container a:hover {
+    color: #0056b3; /* Opcional: mudar a cor do link ao passar o mouse */
 }
 
 input[type="text"],
@@ -221,10 +239,11 @@ form.show-form {
     flex-direction: column;   /* Alinha os elementos em coluna */
     margin: 20px auto;       /* Margem automática para centralizar o contêiner */
     padding: 20px;           /* Espaçamento interno */
-    background-color: #f9f9f9; /* Cor de fundo do contêiner */
+    background-color: black; /* Cor de fundo do contêiner */
     border-radius: 10px;     /* Bordas arredondadas */
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Sombra do contêiner */
     width: 400px;            /* Largura fixa do formulário */
+    opacity: 90%;
 }
 
 form {
