@@ -555,19 +555,35 @@ def pesquisa_documentos():
     # Receber o termo de busca do formulário
     termo_busca = request.args.get('document')
 
-    # Buscar documentos no MySQL
+    # Adicionando um log para verificar o termo de busca
+    if not termo_busca:
+        return "Erro: Termo de busca não fornecido.", 400
+
+    # Conectar ao banco de dados
     conn = connect_to_db()
+    if conn is None:
+        return "Erro ao conectar ao banco de dados.", 500
+
     cursor = conn.cursor(dictionary=True)
+    
+    # Adicionando um log para ver a consulta SQL que está sendo executada
+    print(f"Consultando documentos com o termo: {termo_busca}")
+    
     cursor.execute("""
         SELECT D.IDDOCUMENT AS iddocument, D.NMDOCUMENT AS nmdocument, C.IDENTIFIER AS category, 
-            D.DOCUMENT_DATE_PUBLISH AS document_date_publish, D.REDATOR AS redator, F.CDDOCUMENT AS cddocument, F.FILEPATH AS filepath
+            D.DOCUMENT_DATE_PUBLISH AS document_date_publish, D.REDATOR AS redator, D.CDDOCUMENT AS cddocument, F.FILEPATH AS filepath
         FROM DCDOCUMENT D
         INNER JOIN DCCATEGORY C ON D.CATEGORY = C.IDCATEGORY
-        INNER JOIN DCFILE F ON D.IDDOCUMENT = F.CDDOCUMENT
-        WHERE D.CURRENT = 1 AND (D.NMDOCUMENT LIKE %s OR D.IDDOCUMENT LIKE %s OR C.IDENTIFIER LIKE %s OR D.REDATOR LIKE %s)
+        LEFT JOIN DCFILE F ON D.IDDOCUMENT = F.CDDOCUMENT
+        WHERE D.CURRENT = 1 
+        AND (D.NMDOCUMENT LIKE %s OR D.IDDOCUMENT LIKE %s OR C.IDENTIFIER LIKE %s OR D.REDATOR LIKE %s)
     """, ('%' + termo_busca + '%', '%' + termo_busca + '%', '%' + termo_busca + '%', '%' + termo_busca + '%'))
 
     documentos = cursor.fetchall()
+    
+    # Verificando se o banco de dados retornou resultados
+    print(f"Documentos encontrados: {documentos}")
+
     cursor.close()
     conn.close()
 
@@ -577,6 +593,7 @@ def pesquisa_documentos():
         mensagem = "Nenhum documento encontrado."
 
     return render_template('pesquisa_documentos.html', documentos=documentos, mensagem=mensagem)
+
 
 # Rota para visualizar o PDF
 @app.route('/view_pdf/<int:doc_id>', methods=['GET'])
