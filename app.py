@@ -120,6 +120,8 @@ def minhas_tarefas_pendentes():
     """)
     tarefas = cursor.fetchall()
 
+    print(f"Tarefas retornadas: {tarefas}")
+
     # Fechar a conexão
     cursor.close()
     conn.close()
