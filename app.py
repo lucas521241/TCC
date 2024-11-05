@@ -6,6 +6,7 @@ import mysql.connector
 import bcrypt
 import os
 import secrets
+import PyPDF2
 
 app = Flask(__name__)
 
@@ -52,7 +53,16 @@ PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(PROJECT_DIR, "upload_files")
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['ALLOWED_EXTENSIONS'] = {'pdf'}
+API_KEY = "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"
 
+# Função para extrair texto do PDF e posteriormente jogar pra API do chatGPT (resumir PDF)
+def extract_text_from_pdf(pdf_path):
+    with open(pdf_path, 'rb') as file:
+        reader = PyPDF2.PdfReader(file)
+        text = ''
+        for page in reader.pages:
+            text += page.extract_text() or ''
+        return text
 
 # Função para verificar se o arquivo que foi feito upload é PDF
 def allowed_file(filename):
@@ -540,15 +550,16 @@ def pesquisa_documentos():
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
         SELECT D.IDDOCUMENT AS iddocument, D.NMDOCUMENT AS nmdocument, C.IDENTIFIER AS category, 
-            D.DOCUMENT_DATE_PUBLISH AS document_date_publish, D.REDATOR AS redator
+            D.DOCUMENT_DATE_PUBLISH AS document_date_publish, D.REDATOR AS redator, F.FILEPATH AS filepath
         FROM DCDOCUMENT D
         JOIN DCCATEGORY C ON D.CATEGORY = C.IDCATEGORY
-        WHERE D.CURRENT = 1 AND D.NMDOCUMENT LIKE %s OR D.IDDOCUMENT LIKE %s OR C.IDENTIFIER LIKE %s OR D.REDATOR LIKE %s
+        JOIN DCFILE F ON D.IDDOCUMENT = F.CDDOCUMENT
+        WHERE D.CURRENT = 1 AND (D.NMDOCUMENT LIKE %s OR D.IDDOCUMENT LIKE %s OR C.IDENTIFIER LIKE %s OR D.REDATOR LIKE %s)
     """, ('%' + termo_busca + '%', '%' + termo_busca + '%', '%' + termo_busca + '%', '%' + termo_busca + '%'))
+
     documentos = cursor.fetchall()
     cursor.close()
     conn.close()
-
 
     # Renderizar o template com os resultados
     mensagem = ""
