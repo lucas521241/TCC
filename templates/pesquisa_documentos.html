@@ -13,18 +13,17 @@
         <a href="/minhas-tarefas">Minhas Tarefas</a>
         <a href="/meu-portal">Meu Portal</a>
         <span>Bem-vindo, {{ current_user.name_user }}</span>
-    
+
         <!-- Formulário de busca -->
         <form id="search-form" action="/pesquisa_documentos" method="get" class="search-toolbar-container" onsubmit="event.preventDefault(); submitSearch()">
             <input type="text" placeholder="Pesquisar documentos..." class="search-toolbar" name="document" id="search-input">
             <button type="submit" class="icon-search-toolbar" onclick="submitSearch()"><i class="fas fa-search"></i></button>
         </form>
     </div>
-    
-    
+
     <h1>Pesquisa de Documentos</h1>
 
-    <p>{{ mensagem }}</p> 
+    <p>{{ mensagem }}</p>
 
     <ul>
         {% for doc in documentos %}
@@ -33,11 +32,21 @@
                 Nome: {{ doc['nmdocument'] }}<br>
                 Categoria: {{ doc['category'] }}<br>
                 Data de Publicação: {{ doc['document_date_publish'] }}<br>
-                Redator: {{ doc['redator'] }}
+                Redator: {{ doc['redator'] }}<br>
+               <!-- <button onclick="app.viewPdf('{{ url_for('view_pdf', doc_id=doc['cddocument']) }}')">Visualizar PDF</button>
+                <button onclick="app.summarizePdf('{{ doc['cddocument'] }}')">Resumir PDF</button> 
+                -->
             </li>
         {% endfor %}
     </ul>
-    
+
+    <div id="app-pdf-viewer">
+        <h2 id="pdf-title">{{ documentTitle }}</h2>
+        <iframe id="pdf-frame" src="" width="100%" height="600px"></iframe>
+        <p id="pdf-summary">{{ summary }}</p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
     <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
     <script>
         // Função para submeter a busca

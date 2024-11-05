@@ -184,7 +184,7 @@ def inserir_documento():
 
                 # Criar um novo Workflow no banco MySQL
                 cursor.execute(""" 
-                    INSERT INTO WORKFLOW (form_id, status, MOTIVO, tipo_workflow) VALUES (%s, 'PENDENTE', %s, 'revisão', %s)
+                    INSERT INTO WORKFLOW (form_id, status, MOTIVO ,tipo_workflow, solicitante) VALUES (%s, 'PENDENTE', %s, 'criação', %s)
                 """, (identificador, motivo, solicitante))
                 workflow_id = cursor.lastrowid
 
@@ -223,7 +223,7 @@ def revisar_documento():
         nome_documento = request.form['nome_documento']
         category = request.form['categoria']
         autor = request.form.get('autor')
-        motivo = request.form.get('motivo')
+        motivo = request.form('motivo')
         solicitante = request.form.get('autor')
 
         if 'pdf_file' not in request.files:
@@ -277,7 +277,7 @@ def revisar_documento():
                 cursor.execute(query_update_documento, (documento['CDDOCUMENT'],))
 
                 cursor.execute(""" 
-                    INSERT INTO WORKFLOW (form_id, status, motivo ,tipo_workflow) VALUES (%s, 'PENDENTE', %s, 'revisão', %s)
+                    INSERT INTO WORKFLOW (form_id, status, MOTIVO ,tipo_workflow, solicitante) VALUES (%s, 'PENDENTE', %s, 'revisão', %s)
                 """, (identificador, motivo, solicitante))
                 workflow_id = cursor.lastrowid
 
@@ -550,10 +550,10 @@ def pesquisa_documentos():
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
         SELECT D.IDDOCUMENT AS iddocument, D.NMDOCUMENT AS nmdocument, C.IDENTIFIER AS category, 
-            D.DOCUMENT_DATE_PUBLISH AS document_date_publish, D.REDATOR AS redator, F.FILEPATH AS filepath
+            D.DOCUMENT_DATE_PUBLISH AS document_date_publish, D.REDATOR AS redator, F.CDDOCUMENT AS cddocument, F.FILEPATH AS filepath
         FROM DCDOCUMENT D
         INNER JOIN DCCATEGORY C ON D.CATEGORY = C.IDCATEGORY
-        LEFT JOIN DCFILE F ON D.IDDOCUMENT = F.CDDOCUMENT
+        INNER JOIN DCFILE F ON D.IDDOCUMENT = F.CDDOCUMENT
         WHERE D.CURRENT = 1 AND (D.NMDOCUMENT LIKE %s OR D.IDDOCUMENT LIKE %s OR C.IDENTIFIER LIKE %s OR D.REDATOR LIKE %s)
     """, ('%' + termo_busca + '%', '%' + termo_busca + '%', '%' + termo_busca + '%', '%' + termo_busca + '%'))
 
@@ -584,10 +584,19 @@ def view_pdf(doc_id):
     if not file_data:
         return jsonify({"error": "PDF não encontrado"}), 404
 
-    pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], file_data['FILENAME'])
-    return send_from_directory(app.config['UPLOAD_FOLDER'], file_data['FILENAME'])
+    # Define o nome do arquivo PDF
+    pdf_filename = file_data['FILENAME']
+    pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], pdf_filename)
 
-    # Rota para resumir o PDF usando a API do ChatGPT
+    # Verifica se o arquivo existe antes de tentar enviá-lo
+    if not os.path.exists(pdf_path):
+        return jsonify({"error": f"Arquivo {pdf_filename} não encontrado no diretório."}), 404
+
+    # Retorna o arquivo PDF ao usuário usando o caminho correto
+    return send_from_directory(app.config['UPLOAD_FOLDER'], pdf_filename)
+
+
+# Rota para resumir o PDF usando a API do ChatGPT
 @app.route('/summarize_pdf/<int:doc_id>', methods=['GET'])
 def summarize_pdf(doc_id):
     # Consulta ao banco de dados
