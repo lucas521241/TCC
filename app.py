@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory
 from flask_login import LoginManager, login_user, current_user, login_required, UserMixin
 from datetime import datetime
 from werkzeug.utils import secure_filename
@@ -7,6 +7,7 @@ import bcrypt
 import os
 import secrets
 import PyPDF2
+import requests
 
 app = Flask(__name__)
 
@@ -157,7 +158,7 @@ def inserir_documento():
             flash("Nenhum arquivo selecionado.")
             return redirect(request.url)
 
-        if file and allowed_file(file.filename):  # Certifique-se de que allowed_file verifica a extensão corretamente
+        if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
@@ -538,7 +539,6 @@ def aprovar_reprovar(atividade_id):
     return redirect(url_for('meu_portal'))
 
 
-
 # Rota para a pesquisa de documentos
 @app.route('/pesquisa_documentos', methods=['GET'])
 def pesquisa_documentos():
@@ -552,8 +552,8 @@ def pesquisa_documentos():
         SELECT D.IDDOCUMENT AS iddocument, D.NMDOCUMENT AS nmdocument, C.IDENTIFIER AS category, 
             D.DOCUMENT_DATE_PUBLISH AS document_date_publish, D.REDATOR AS redator, F.FILEPATH AS filepath
         FROM DCDOCUMENT D
-        JOIN DCCATEGORY C ON D.CATEGORY = C.IDCATEGORY
-        JOIN DCFILE F ON D.IDDOCUMENT = F.CDDOCUMENT
+        INNER JOIN DCCATEGORY C ON D.CATEGORY = C.IDCATEGORY
+        LEFT JOIN DCFILE F ON D.IDDOCUMENT = F.CDDOCUMENT
         WHERE D.CURRENT = 1 AND (D.NMDOCUMENT LIKE %s OR D.IDDOCUMENT LIKE %s OR C.IDENTIFIER LIKE %s OR D.REDATOR LIKE %s)
     """, ('%' + termo_busca + '%', '%' + termo_busca + '%', '%' + termo_busca + '%', '%' + termo_busca + '%'))
 
@@ -567,6 +567,58 @@ def pesquisa_documentos():
         mensagem = "Nenhum documento encontrado."
 
     return render_template('pesquisa_documentos.html', documentos=documentos, mensagem=mensagem)
+
+# Rota para visualizar o PDF
+@app.route('/view_pdf/<int:doc_id>', methods=['GET'])
+def view_pdf(doc_id):
+    # Conectar ao banco de dados
+    conn = connect_to_db()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Consulta para obter o nome do arquivo pelo CDDOCUMENT
+    cursor.execute("SELECT FILENAME FROM DCFILE WHERE CDDOCUMENT = %s", (doc_id,))
+    file_data = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if not file_data:
+        return jsonify({"error": "PDF não encontrado"}), 404
+
+    pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], file_data['FILENAME'])
+    return send_from_directory(app.config['UPLOAD_FOLDER'], file_data['FILENAME'])
+
+    # Rota para resumir o PDF usando a API do ChatGPT
+@app.route('/summarize_pdf/<int:doc_id>', methods=['GET'])
+def summarize_pdf(doc_id):
+    # Consulta ao banco de dados
+    conn = connect_to_db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT FILENAME FROM DCFILE WHERE CDDOCUMENT = %s", (doc_id,))
+    file_data = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if not file_data:
+        return jsonify({"error": "PDF não encontrado"}), 404
+
+    pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], file_data['FILENAME'])
+    pdf_text = extract_text_from_pdf(pdf_path)
+
+    # Chamar API do ChatGPT
+    response = requests.post(
+        "https://api.openai.com/v1/engines/davinci-codex/completions",
+        headers={
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json"
+        },
+        json={
+            "prompt": f"Resuma o seguinte texto:\n{pdf_text}",
+            "max_tokens": 150
+        }
+    )
+    summary = response.json().get('choices', [{}])[0].get('text', 'Erro ao resumir o PDF')
+
+    return jsonify({"summary": summary})
 
 
 # Executar o app Flask
