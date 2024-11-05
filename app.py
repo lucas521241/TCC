@@ -7,6 +7,7 @@ import bcrypt
 import os
 import secrets
 import PyPDF2
+import logging
 import requests
 
 app = Flask(__name__)
@@ -69,6 +70,11 @@ def extract_text_from_pdf(pdf_path):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']    
 
+
+# Configuração básica do logger
+logging.basicConfig(filename='app.log', level=logging.DEBUG, 
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
 # Rota inicial do portal
 @app.route('/meu-portal')
 def meu_portal():
@@ -94,7 +100,6 @@ def meu_portal():
     # Passar as categorias e documentos para o template
     return render_template('meu_portal.html', categorias=categorias, documentos=documentos)
 
-# Rota para tarefas pendentes
 @app.route('/minhas-tarefas-pendentes')
 def minhas_tarefas_pendentes():
     # Conectar ao banco de dados
@@ -120,7 +125,11 @@ def minhas_tarefas_pendentes():
     """)
     tarefas = cursor.fetchall()
 
-    print(f"Tarefas retornadas: {tarefas}")
+    # Verificação extra
+    if not tarefas:
+        print("Nenhuma tarefa pendente encontrada.")
+    else:
+        print(f"Tarefas retornadas: {tarefas}")
 
     # Fechar a conexão
     cursor.close()
@@ -128,7 +137,6 @@ def minhas_tarefas_pendentes():
 
     # Passar as tarefas para o template
     return render_template('minhas_tarefas.html', tarefas=tarefas)
-
 
 # Rota para inserir documento no banco e PDF
 @app.route('/inserir-documento', methods=['GET', 'POST'])

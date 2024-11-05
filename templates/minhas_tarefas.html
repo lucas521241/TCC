@@ -14,19 +14,20 @@
         <a href="/meu-portal">Meu Portal</a>
         <span>Bem-vindo, {{ current_user.name_user }}</span>
         <form id="search-form-toolbar" action="/pesquisa_documentos" method="get" class="search-toolbar-container">
-            <input type="text" placeholder="Pesquisar documentos..." class="search-toolbar" name="document">
+            <input type="text" placeholder="Pesquisar documentos..." class="search-toolbar" name="document" id="search-input">
             <button type="submit" class="icon-search-toolbar"><i class="fas fa-search"></i></button>
         </form>
     </div>
     
     <h1>Minhas Tarefas</h1>
     
-    <!-- Lista de Tarefas -->
-
-    <div class="tasks-container">
-        <h2>Criação de Documentos</h2>
-        <ul>
-            {% for tarefa in tarefas if tarefa['tipo_workflow'] == 'criação' %}
+<!-- Lista de Tarefas -->
+<div class="tasks-container">
+    <h2>Criação de Documentos</h2>
+    {% set tem_criacao = false %}
+    <ul>
+        {% for tarefa in tarefas %}
+            {% if tarefa['tipo_workflow'] == 'criação' %}
                 <li>
                     Documento: {{ tarefa['form_id'] }} - Status do Workflow: {{ tarefa['workflow_status'] }}
                     <form action="/aprovar_reprovar/{{ tarefa['id'] }}" method="POST" style="display: inline;">
@@ -34,12 +35,19 @@
                         <button type="submit" name="status" value="REPROVADO" class="reject-button">Reprovar</button>
                     </form>
                 </li>
-            {% endfor %}
-        </ul>
+                {% set tem_criacao = true %}
+            {% endif %}
+        {% endfor %}
+    </ul>
+    {% if not tem_criacao %}
+        <p>Não há tarefas de criação de documentos pendentes.</p>
+    {% endif %}
 
-        <h2>Revisão de Documentos</h2>
-        <ul>
-            {% for tarefa in tarefas if tarefa['tipo_workflow'] == 'revisão' %}
+    <h2>Revisão de Documentos</h2>
+    {% set tem_revisao = false %}
+    <ul>
+        {% for tarefa in tarefas %}
+            {% if tarefa['tipo_workflow'] == 'revisão' %}
                 <li>
                     Documento: {{ tarefa['form_id'] }} - Status do Workflow: {{ tarefa['workflow_status'] }}
                     <form action="/aprovar_reprovar/{{ tarefa['id'] }}" method="POST" style="display: inline;">
@@ -47,12 +55,19 @@
                         <button type="submit" name="status" value="REPROVADO" class="reject-button">Reprovar</button>
                     </form>
                 </li>
-            {% endfor %}
-        </ul>
+                {% set tem_revisao = true %}
+            {% endif %}
+        {% endfor %}
+    </ul>
+    {% if not tem_revisao %}
+        <p>Não há tarefas de revisão de documentos pendentes.</p>
+    {% endif %}
 
-        <h2>Cancelamento de Documentos</h2>
-        <ul>
-            {% for tarefa in tarefas if tarefa['tipo_workflow'] == 'cancelamento' %}
+    <h2>Cancelamento de Documentos</h2>
+    {% set tem_cancelamento = false %}
+    <ul>
+        {% for tarefa in tarefas %}
+            {% if tarefa['tipo_workflow'] == 'cancelamento' %}
                 <li>
                     Documento: {{ tarefa['form_id'] }} - Status do Workflow: {{ tarefa['workflow_status'] }}
                     <form action="/aprovar_reprovar/{{ tarefa['id'] }}" method="POST" style="display: inline;">
@@ -60,9 +75,16 @@
                         <button type="submit" name="status" value="REPROVADO" class="reject-button">Reprovar</button>
                     </form>
                 </li>
-            {% endfor %}
-        </ul>
-    </div>
+                {% set tem_cancelamento = true %}
+            {% endif %}
+        {% endfor %}
+    </ul>
+    {% if not tem_cancelamento %}
+        <p>Não há tarefas de cancelamento de documentos pendentes.</p>
+    {% endif %}
+</div>
+
+
     <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
     <script>
         // Função para submeter a busca
