@@ -90,19 +90,78 @@ h1 {
     margin-top: 20px;
 }
 
-/* Estilos para a lista de tarefas */
+/* Estilos para a lista de tarefas pendentes */
 .tasks-container {
     display: flex;
-    justify-content: center; /* Centraliza horizontalmente */
-    align-items: flex-start; /* Alinha os itens no início */
-    flex-direction: column;  /* Alinha os itens em coluna */
-    margin: 20px;           /* Margem para a lista */
+    justify-content: center;
+    align-items: flex-start;
+    flex-direction: column;
+    margin: 20px;
 }
 
 ul {
-    list-style-type: none;  /* Remove os marcadores da lista */
-    padding: 0;             /* Remove o preenchimento padrão */
+    list-style-type: none;
+    padding: 0;
 }
+
+.task-item {
+    background: rgba(0, 0, 0, 0.6);  /* Fundo escuro com opacidade */
+    margin: 15px 0;                 /* Margem entre os itens */
+    padding: 20px;                  /* Espaçamento interno maior */
+    border-radius: 10px;            /* Bordas arredondadas */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Sombra para destacar o item */
+    transition: transform 0.3s;
+    color: white;
+}
+
+.task-field {
+    margin: 10px 0; /* Margem entre cada campo para espaçamento */
+}
+
+.task-item h3 {
+    font-size: 1.3em;
+    color: #007bff; /* Azul */
+}
+
+/* Estilos para os detalhes da tarefa, motivo e solicitante em linhas separadas */
+.task-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;  /* Espaçamento entre os detalhes */
+    font-size: 1em;
+}
+
+.task-details p {
+    margin: 5px 0;
+    padding: 0;
+}
+
+.task-motivo, .task-solicitante {
+    font-size: 1em;
+    color: #dcdcdc; /* Cinza claro para subtítulos */
+}
+
+.task-item:hover {
+    transform: scale(1.03);  /* Efeito de leve aumento ao passar o mouse */
+}
+
+.approve-button, .reject-button {
+    padding: 8px 16px;
+    margin-top: 15px;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* Tamanhos e espaçamentos */
+button:hover {
+    transform: scale(1.1);
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
 
 li {
     background: rgba(0, 0, 0, 0.5);  /* Fundo preto com 50% de opacidade */

@@ -100,44 +100,6 @@ def meu_portal():
     # Passar as categorias e documentos para o template
     return render_template('meu_portal.html', categorias=categorias, documentos=documentos)
 
-@app.route('/minhas-tarefas-pendentes')
-def minhas_tarefas_pendentes():
-    # Conectar ao banco de dados
-    conn = connect_to_db()
-    if conn is None:
-        return "Erro ao conectar ao banco de dados."
-    
-    cursor = conn.cursor(dictionary=True)
-
-    # Buscar tarefas existentes no banco de dados
-    cursor.execute("""
-        SELECT 
-            WA.id, 
-            W.form_id, 
-            W.status AS workflow_status, 
-            W.tipo_workflow
-        FROM 
-            WORKFLOW_ATIVIDADES WA
-        INNER JOIN 
-            WORKFLOW W ON WA.workflow_id = W.id
-        WHERE 
-            WA.status = 'PENDENTE'
-    """)
-    tarefas = cursor.fetchall()
-
-    # Verificação extra
-    if not tarefas:
-        print("Nenhuma tarefa pendente encontrada.")
-    else:
-        print(f"Tarefas retornadas: {tarefas}")
-
-    # Fechar a conexão
-    cursor.close()
-    conn.close()
-
-    # Passar as tarefas para o template
-    return render_template('minhas_tarefas.html', tarefas=tarefas)
-
 # Rota para inserir documento no banco e PDF
 @app.route('/inserir-documento', methods=['GET', 'POST'])
 def inserir_documento():
@@ -456,24 +418,66 @@ def register_route():
 def home():
     return render_template('home.html')
 
-# Rota para exibir tarefas
+# Rota combinada para exibir tarefas pendentes do usuário
 @app.route('/minhas-tarefas')
 def minhas_tarefas():
-    usuario_id = current_user.id  # ID do usuário logado
+    usuario_id = getattr(current_user, 'id', None)  # Obtém o ID do usuário logado se disponível
     
     conn = connect_to_db()
+    if conn is None:
+        app.logger.info("Erro ao conectar ao banco de dados.")
+        return "Erro ao conectar ao banco de dados."
+
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT a.id, a.status, w.form_id, w.status as workflow_status
-        FROM WORKFLOW_ATIVIDADES a
-        JOIN WORKFLOW w ON a.workflow_id = w.id
-        WHERE a.usuario_id = %s AND a.status = 'PENDENTE'
-    """, (usuario_id,))
+
+    # Executa a consulta com ou sem filtro de usuário dependendo da presença do usuario_id
+    if usuario_id:
+        cursor.execute("""
+            SELECT 
+                WA.id, 
+                W.form_id, 
+                W.status AS workflow_status, 
+                W.tipo_workflow,
+                W.MOTIVO AS motivo,
+                W.solicitante AS solicitante
+            FROM 
+                WORKFLOW_ATIVIDADES WA
+            INNER JOIN 
+                WORKFLOW W ON WA.workflow_id = W.id
+            WHERE 
+                WA.status = 'PENDENTE' AND WA.usuario_id = %s AND W.tipo_workflow IS NOT NULL
+        """, (usuario_id,))
+    else:
+        cursor.execute("""
+            SELECT 
+                WA.id, 
+                W.form_id, 
+                W.status AS workflow_status, 
+                W.tipo_workflow,
+                W.MOTIVO AS motivo,
+                W.solicitante AS solicitante
+            FROM 
+                WORKFLOW_ATIVIDADES WA
+            INNER JOIN 
+                WORKFLOW W ON WA.workflow_id = W.id
+            WHERE 
+                WA.status = 'PENDENTE' AND AND W.tipo_workflow IS NOT NULL
+        """)
+    
     tarefas = cursor.fetchall()
+
+    if not tarefas:
+        app.logger.info("Nenhuma tarefa pendente encontrada.")
+    else:
+        app.logger.info(f"Tarefas retornadas: {tarefas}")
+
+    # Fechar a conexão
     cursor.close()
     conn.close()
 
+    # Passar as tarefas para o template
     return render_template('minhas_tarefas.html', tarefas=tarefas)
+
 
 # Rota para aprovar ou reprovar tarefas de criação
 @app.route('/aprovar_reprovar/<int:atividade_id>', methods=['POST'])
