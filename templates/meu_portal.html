@@ -53,7 +53,7 @@
         <textarea id="motivo-cancel" name="motivo" placeholder="Descreva o motivo da criação" required></textarea>
 
         <label for="pdf-file">Arquivo PDF:</label>
-        <input type="file" id="pdf-file" name="file" accept="application/pdf" required>
+        <input type="file" id="pdf-file" name="file" accept=".pdf" required>
 
         <input type="hidden" id="autor" name="autor" value="{{ current_user.name_user }}">
         <input type="hidden" id="current" name="current" value="1">
@@ -90,7 +90,7 @@
         <textarea id="motivo-cancel" name="motivo" placeholder="Descreva o motivo da revisão" required></textarea>
 
         <label for="pdf-file-review">Arquivo PDF:</label>
-        <input type="file" id="pdf-file-review" name="pdf_file" accept="application/pdf" required>
+        <input type="file" id="pdf-file-review" name="pdf_file" accept=".pdf" required>
 
         <input type="hidden" id="autor" name="autor" value="{{ current_user.name_user }}">
 
