@@ -48,8 +48,7 @@
                 <form action="/aprovar_reprovar/{{ tarefa.id }}" method="POST" style="display: inline;">
                     <button type="submit" name="status" value="APROVADO" class="approve-button">Aprovar</button>
                     <button type="submit" name="status" value="REPROVADO" class="reject-button">Reprovar</button>
-                    <button type="button" class="view-pdf-button">Visualizar PDF</button>
-                    
+                    <a href="/visualizar_pdf/{{ tarefa.id }}" class="view-pdf-button">Visualizar PDF</a>
                 </form>
             </li>
         {% endfor %}

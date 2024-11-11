@@ -418,7 +418,7 @@ def register_route():
 def home():
     return render_template('home.html')
 
-# Rota combinada para exibir tarefas pendentes do usuário
+# Rota para exibir tarefas pendentes do usuário
 @app.route('/minhas-tarefas')
 def minhas_tarefas():
     usuario_id = getattr(current_user, 'id', None)  # Obtém o ID do usuário logado se disponível
@@ -477,6 +477,51 @@ def minhas_tarefas():
 
     # Passar as tarefas para o template
     return render_template('minhas_tarefas.html', tarefas=tarefas)
+
+
+@app.route('/visualizar_pdf/<int:tarefa_id>', methods=['GET'])
+def visualizar_pdf(tarefa_id):
+    # Log para verificar o ID da tarefa
+    app.logger.info(f"Visualizando PDF para a tarefa com ID: {tarefa_id}")
+
+    # Conectar ao banco de dados
+    conn = connect_to_db()
+    cursor = conn.cursor(dictionary=True)
+    
+    # Consulta para obter o CDDOCUMENT e FILENAME baseado no ID da tarefa
+    cursor.execute("""
+        SELECT D.CDDOCUMENT, F.FILENAME
+        FROM DCDOCUMENT D
+        INNER JOIN DCFILE F ON D.CDDOCUMENT = F.CDDOCUMENT
+        INNER JOIN WORKFLOW W ON D.IDDOCUMENT = W.form_id
+        INNER JOIN WORKFLOW_ATIVIDADES WA ON WA.workflow_id = W.id
+        WHERE WA.id = %s
+    """, (tarefa_id,))
+
+    pdf_data = cursor.fetchone()
+
+    # Log para verificar o resultado da consulta SQL
+    if pdf_data:
+        app.logger.info(f"PDF encontrado: CDDOCUMENT={pdf_data['CDDOCUMENT']}, FILENAME={pdf_data['FILENAME']}")
+    else:
+        app.logger.warning(f"Nenhum PDF encontrado para o ID da tarefa: {tarefa_id}")
+
+    cursor.close()
+    conn.close()
+
+    if not pdf_data:
+        return jsonify({"error": "PDF não encontrado"}), 404
+
+    # Obtém o caminho completo do arquivo PDF
+    pdf_filename = pdf_data['FILENAME']
+    pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], pdf_filename)
+
+    # Verifica se o arquivo existe antes de tentar enviá-lo
+    if not os.path.exists(pdf_path):
+        return jsonify({"error": f"Arquivo {pdf_filename} não encontrado no diretório."}), 404
+
+    # Retorna o arquivo PDF ao usuário
+    return send_from_directory(app.config['UPLOAD_FOLDER'], pdf_filename)
 
 
 # Rota para aprovar ou reprovar tarefas de criação
@@ -599,7 +644,7 @@ def pesquisa_documentos():
     return render_template('pesquisa_documentos.html', documentos=documentos, mensagem=mensagem)
 
 
-# Rota para visualizar o PDF
+# Rota para visualizar o PDF na pesquisa
 @app.route('/view_pdf/<int:doc_id>', methods=['GET'])
 def view_pdf(doc_id):
     # Conectar ao banco de dados
