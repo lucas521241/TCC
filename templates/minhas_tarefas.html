@@ -48,6 +48,8 @@
                 <form action="/aprovar_reprovar/{{ tarefa.id }}" method="POST" style="display: inline;">
                     <button type="submit" name="status" value="APROVADO" class="approve-button">Aprovar</button>
                     <button type="submit" name="status" value="REPROVADO" class="reject-button">Reprovar</button>
+                    <button type="button" class="view-pdf-button">Visualizar PDF</button>
+                    
                 </form>
             </li>
         {% endfor %}

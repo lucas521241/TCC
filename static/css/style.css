@@ -153,6 +153,27 @@ ul {
     cursor: pointer;
 }
 
+.view-pdf-button {
+    padding: 8px 16px;
+    margin-top: 10px;  /* Espaçamento acima do botão */
+    background-color: grey;  /* Cor verde */
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.3s, background-color 0.3s;
+}
+
+.view-pdf-button:hover {
+    transform: scale(1.1);  /* Efeito de aumento */
+    background-color: blue;  /* Tom de verde mais escuro ao passar o mouse */
+}
+
+.view-pdf-button:active {
+    transform: scale(0.98);  /* Efeito de redução ao pressionar */
+}
+
 /* Tamanhos e espaçamentos */
 button:hover {
     transform: scale(1.1);
