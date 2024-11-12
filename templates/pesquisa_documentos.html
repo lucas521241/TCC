@@ -28,14 +28,13 @@
     <ul>
         {% for doc in documentos %}
             <li>
-                ID: {{ doc['iddocument'] }}<br>
-                Nome: {{ doc['nmdocument'] }}<br>
-                Categoria: {{ doc['category'] }}<br>
-                Data de Publicação: {{ doc['document_date_publish'] }}<br>
-                Redator: {{ doc['redator'] }}<br>
-               <!-- <button onclick="app.viewPdf('{{ url_for('view_pdf', doc_id=doc['cddocument']) }}')">Visualizar PDF</button>
-                <button onclick="app.summarizePdf('{{ doc['cddocument'] }}')">Resumir PDF</button> 
-                -->
+                <p><strong>ID:</strong> {{ doc['iddocument'] }}</p>
+                <p><strong>Nome:</strong> {{ doc['nmdocument'] }}</p>
+                <p><strong>Categoria:</strong> {{ doc['category'] }}</p>
+                <p><strong>Data de Publicação:</strong> {{ doc['document_date_publish'] }}</p>
+                <p><strong>Redator:</strong> {{ doc['redator'] }}</p>
+                <a href="/view_pdf/{{ doc['cddocument'] }}" class="view-pdf-button">Visualizar PDF</a>
+                <a href="/summarize_pdf/{{ doc['cddocument'] }}" class="summarize-pdf-button">Resumir PDF</a>
             </li>
         {% endfor %}
     </ul>

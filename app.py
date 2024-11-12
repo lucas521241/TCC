@@ -575,12 +575,12 @@ def aprovar_reprovar(atividade_id):
             if tipo_workflow == 'criação':
                 # Atualiza o CURRENT e STATUS do documento para criação
                 cursor.execute("""
-                    UPDATE DCDOCUMENT SET CURRENT = 1, STATUS = 'HOMOLOGADO' WHERE IDDOCUMENT = %s
+                    UPDATE DCDOCUMENT SET CURRENT = 1, STATUS = 'HOMOLOGADO', DOCUMENT_DATE_PUBLISH = NOW() WHERE IDDOCUMENT = %s
                 """, (form_id,))
             elif tipo_workflow == 'revisão':
                 # Atualiza o CURRENT e STATUS do documento para revisão
                 cursor.execute("""
-                    UPDATE DCDOCUMENT SET CURRENT = 1, STATUS = 'HOMOLOGADO' WHERE IDDOCUMENT = %s
+                    UPDATE DCDOCUMENT SET CURRENT = 1, STATUS = 'HOMOLOGADO', DOCUMENT_DATE_PUBLISH = NOW() WHERE IDDOCUMENT = %s
                 """, (form_id,))
                 # Atualiza o documento antigo para CURRENT = 2
                 cursor.execute("""
@@ -657,19 +657,23 @@ def view_pdf(doc_id):
     cursor.close()
     conn.close()
 
+    # Verifica se encontrou um arquivo para o CDDOCUMENT especificado
     if not file_data:
+        app.logger.warning(f"PDF não encontrado no banco de dados para o CDDOCUMENT: {doc_id}")
         return jsonify({"error": "PDF não encontrado"}), 404
 
-    # Define o nome do arquivo PDF
+    # Define o caminho completo do arquivo PDF
     pdf_filename = file_data['FILENAME']
     pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], pdf_filename)
 
-    # Verifica se o arquivo existe antes de tentar enviá-lo
+    # Verifica se o arquivo existe no diretório especificado
     if not os.path.exists(pdf_path):
+        app.logger.warning(f"Arquivo {pdf_filename} não encontrado no diretório: {app.config['UPLOAD_FOLDER']}")
         return jsonify({"error": f"Arquivo {pdf_filename} não encontrado no diretório."}), 404
 
     # Retorna o arquivo PDF ao usuário usando o caminho correto
     return send_from_directory(app.config['UPLOAD_FOLDER'], pdf_filename)
+
 
 
 # Rota para resumir o PDF usando a API do ChatGPT
