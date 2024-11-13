@@ -1,7 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory
 from flask_login import LoginManager, login_user, current_user, login_required, UserMixin
-from datetime import datetime
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+from datetime import datetime
+import openai
 import mysql.connector
 import bcrypt
 import os
@@ -9,6 +11,12 @@ import secrets
 import PyPDF2
 import logging
 import requests
+
+# Carrega as variáveis de ambiente do arquivo .env
+load_dotenv()
+
+# Chave de API do OpenAI
+API_KEY = os.getenv("OPENAI_API_KEY")
 
 app = Flask(__name__)
 
