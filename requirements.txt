@@ -7,3 +7,5 @@ python-dotenv
 bcrypt
 requests
 secrets
+python-dotenv
+openai
