@@ -2,6 +2,9 @@
 venv/
 .env/
 
+# Ignorar o arquivo pdf_view.env
+pdf_view.env
+
 # Arquivos de cache Python
 __pycache__/
 *.py[cod]
