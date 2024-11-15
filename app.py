@@ -326,19 +326,20 @@ def inserir_documento():
 # Rota para revisar documento
 @app.route('/revisar-documento', methods=['GET', 'POST'])
 def revisar_documento():
-    if request.method == 'GET':
-        categorias = obter_categorias()
-        documentos = obter_documentos()
+    if request.method == 'GET': # Verifica se é método GET
+        categorias = obter_categorias() # Pega da função obter categoria e salva na variável categorias
+        documentos = obter_documentos() # Pega da função obter categoria e salva na variável documentos
         return render_template('meu_portal.html', categorias=categorias, documentos=documentos)
 
-    if request.method == 'POST':
-        identificador = request.form['identificador']
-        nome_documento = request.form['nome_documento']
-        category = request.form['categoria']
-        autor = request.form.get('autor')
-        motivo = request.form('motivo')
-        solicitante = request.form.get('autor')
+    if request.method == 'POST': # Verifica se é método POST
+        identificador = request.form['identificador']       # Pega o valor digitado no formulário e salva na variavel identificador
+        nome_documento = request.form['nome_documento']     # Pega o valor digitado no formulário e salva na variavel nome_documento
+        category = request.form['categoria']                # Pega o valor digitado no formulário e salva na variavel category
+        autor = request.form.get('autor')                   # Pega o valor digitado no formulário e salva na variavel autor
+        motivo = request.form('motivo')                     # Pega o valor digitado no formulário e salva na variavel motivo
+        solicitante = request.form.get('autor')             # Pega o valor digitado no formulário e salva na variavel solicitante
 
+        # Verifica se tem arquivo e é PDF
         if 'pdf_file' not in request.files:
             flash("Nenhum arquivo enviado.")
             return redirect(request.url)
@@ -352,14 +353,17 @@ def revisar_documento():
             flash("Apenas arquivos PDF são permitidos.", "danger")
             return redirect(request.url)
 
+         # Salva o arquivo PDF na pasta local
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(filepath)
 
         try:
+            # Atualiza os registro no banco (se conectando)
             conn = connect_to_db()
             cursor = conn.cursor(dictionary=True)
 
+            # Faz um select dos campos do DCDOCUMENT e trás só oque é ativo (CURRENT = 1 )
             query_select_documento = """
             SELECT * FROM DCDOCUMENT
             WHERE IDDOCUMENT = %s AND CURRENT = 1
@@ -368,38 +372,44 @@ def revisar_documento():
             documento = cursor.fetchone()
 
             if documento:
-                nova_revisao = documento['REVISION'] + 1
+                nova_revisao = documento['REVISION'] + 1 # Faz isso pra colocar o novo numero da revisão do documento (anterior +1)
+                
+                # Query pra inserir os dados do documento no banco, conforme formulário e outros
                 query_insert_documento = """
                 INSERT INTO DCDOCUMENT (IDDOCUMENT, NMDOCUMENT, CATEGORY, REVISION, CURRENT, REDATOR, STATUS)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """
-                cursor.execute(query_insert_documento, (identificador, nome_documento, category, nova_revisao, 1, autor, 'REVISÃO'))
-                cddocument = cursor.lastrowid
+                cursor.execute(query_insert_documento, (identificador, nome_documento, category, nova_revisao, 1, autor, 'REVISÃO')) # Executa o SQL
+                cddocument = cursor.lastrowid # pega o ultimo CDDOCUMENT gerado
 
+                # Insere no DCFILE as paradas do documento e o numero gerado do CDDOCUMENT
                 query_insert_file = """
                 INSERT INTO DCFILE (FILENAME, FILEPATH, CDDOCUMENT)
                 VALUES (%s, %s, %s)
                 """
-                cursor.execute(query_insert_file, (filename, filepath, cddocument))
+                cursor.execute(query_insert_file, (filename, filepath, cddocument)) # Executa o SQL
 
+                # Faz um update do documento e insere como status 2 (inativo) pra somente quando aprovado ele ficar como ativo (CURRENT = 1)
                 query_update_documento = """
                 UPDATE DCDOCUMENT
                 SET CURRENT = 2
                 WHERE CDDOCUMENT = %s
                 """
-                cursor.execute(query_update_documento, (documento['CDDOCUMENT'],))
+                cursor.execute(query_update_documento, (documento['CDDOCUMENT'],)) # Executa o SQL
 
                 cursor.execute(""" 
                     INSERT INTO WORKFLOW (form_id, status, MOTIVO ,tipo_workflow, solicitante) VALUES (%s, 'PENDENTE', %s, 'revisão', %s)
                 """, (identificador, motivo, solicitante))
                 workflow_id = cursor.lastrowid
-
+                
+                # Inserer o usuario_aprovado pra 1 e colocar isso no banco
                 usuario_aprovador = 1
                 cursor.execute(""" 
                     INSERT INTO WORKFLOW_ATIVIDADES (workflow_id, usuario_id, status)
                     VALUES (%s, %s, 'PENDENTE')
                 """, (workflow_id, usuario_aprovador))
 
+                # Fecha a conexão com o banco de dados
                 conn.commit()
                 cursor.close()
                 conn.close()
