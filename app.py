@@ -429,50 +429,54 @@ def revisar_documento():
 # Rota para iniciar um cancelamento
 @app.route('/iniciar-cancelamento', methods=['POST'])
 def iniciar_cancelamento():
-    identificador = request.form['identificador']
-    motivo = request.form['motivo']
-    solicitante = request.form.get('autor')
+    identificador = request.form['identificador']       # Pega o valor digitado no formulário e salva na variavel identificador
+    motivo = request.form['motivo']                     # Pega o valor digitado no formulário e salva na variavel motivo
+    solicitante = request.form.get('autor')             # Pega o valor digitado no formulário e salva na variavel solicitante
 
     try:
+        # Se conecta no banco
         conn = connect_to_db()
         cursor = conn.cursor()
 
-        # Inserir uma nova entrada no workflow para o cancelamento com o motivo
+        # Inseri um novo workflow para o cancelamento
         cursor.execute(""" 
             INSERT INTO WORKFLOW (form_id, status, motivo, tipo_workflow, solicitante) VALUES (%s, 'PENDENTE', %s, 'cancelamento', %s)
         """, (identificador, motivo, solicitante))
         workflow_id = cursor.lastrowid
         
-        # Definir usuário aprovador
+        # Definir usuário que irá aprovar com ID = 1
         usuario_aprovador = 1
         cursor.execute(""" 
             INSERT INTO WORKFLOW_ATIVIDADES (workflow_id, usuario_id, status)
             VALUES (%s, %s, 'PENDENTE')
         """, (workflow_id, usuario_aprovador))
-        
+
+        # Comita as inserções e fecha a conexão com o banco de dados
         conn.commit()
         cursor.close()
         conn.close()
         print("Cancelamento do documento pendente de aprovação.")
     except Exception as e:
+        # Caso der um erro, printar o erro
         print(f"Erro ao iniciar cancelamento: {e}")
         return "Erro ao iniciar cancelamento."
 
     return redirect(url_for('meu_portal'))
 
-# Rota para exibir tarefas pendentes do usuário
+# Rota para exibir tarefas pendentes do usuário logado
 @app.route('/minhas-tarefas')
 def minhas_tarefas():
-    usuario_id = getattr(current_user, 'id', None)  # Obtém o ID do usuário logado se disponível
+    usuario_id = getattr(current_user, 'id', None)  # Obtém o ID do usuário que tá logado
     
+    # Conecta com o banco de dados
     conn = connect_to_db()
     if conn is None:
+        # Caso der erro, logar isso nos logs da aplicação
         app.logger.info("Erro ao conectar ao banco de dados.")
         return "Erro ao conectar ao banco de dados."
-
     cursor = conn.cursor(dictionary=True)
 
-    # Executa a consulta com ou sem filtro de usuário dependendo da presença do usuario_id
+    # Faz uma consulta com o filtro do usuário e atividades pendentes
     if usuario_id:
         cursor.execute("""
             SELECT 
@@ -508,29 +512,30 @@ def minhas_tarefas():
     
     tarefas = cursor.fetchall()
 
+    # Loga os erros ou retorna as atividades se der sucesso
     if not tarefas:
         app.logger.info("Nenhuma tarefa pendente encontrada.")
     else:
         app.logger.info(f"Tarefas retornadas: {tarefas}")
 
-    # Fechar a conexão
+    # Fecha a conexão com o banco
     cursor.close()
     conn.close()
 
-    # Passar as tarefas para o template
+    # Traz as atividades (tarefas) pro template das Minhas Tarefas, de acordo com o usuário logado
     return render_template('minhas_tarefas.html', tarefas=tarefas)
 
-
+# Rota pra visualizar as tarefas de acordo com o ID dela
 @app.route('/visualizar_pdf/<int:tarefa_id>', methods=['GET'])
 def visualizar_pdf(tarefa_id):
     # Log para verificar o ID da tarefa
     app.logger.info(f"Visualizando PDF para a tarefa com ID: {tarefa_id}")
 
-    # Conectar ao banco de dados
+    # Conecta ao banco de dados
     conn = connect_to_db()
     cursor = conn.cursor(dictionary=True)
     
-    # Consulta para obter o CDDOCUMENT e FILENAME baseado no ID da tarefa
+    # Consulta para pegar o CDDOCUMENT e FILENAME baseado no ID da tarefa
     cursor.execute("""
         SELECT D.CDDOCUMENT, F.FILENAME
         FROM DCDOCUMENT D
@@ -548,45 +553,49 @@ def visualizar_pdf(tarefa_id):
     else:
         app.logger.warning(f"Nenhum PDF encontrado para o ID da tarefa: {tarefa_id}")
 
+    # Fecha a conexão com o banco de dados
     cursor.close()
     conn.close()
 
+    # Se não tiver PDF (arquivo) dá erro
     if not pdf_data:
         return jsonify({"error": "PDF não encontrado"}), 404
 
-    # Obtém o caminho completo do arquivo PDF
+    # Pega o caminho completo do arquivo PDF na pasta local
     pdf_filename = pdf_data['FILENAME']
     pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], pdf_filename)
 
-    # Verifica se o arquivo existe antes de tentar enviá-lo
+    # Verifica se o arquivo existe antes de salvar
     if not os.path.exists(pdf_path):
         return jsonify({"error": f"Arquivo {pdf_filename} não encontrado no diretório."}), 404
 
-    # Retorna o arquivo PDF ao usuário
+    # Retorna o PDF pro usuário
     return send_from_directory(app.config['UPLOAD_FOLDER'], pdf_filename)
 
 
-# Rota para aprovar ou reprovar tarefas de criação
+# Rota para aprovar ou reprovar as tarefas de criação do documento (método POST)
 @app.route('/aprovar_reprovar/<int:atividade_id>', methods=['POST'])
 def aprovar_reprovar(atividade_id):
-    status = request.form['status']
-    conn = connect_to_db()
+    status = request.form['status'] # Salva na variavel status o valor do STATUS no formulário
+
+    # Conecta com o banco de dados
+    conn = connect_to_db() 
     cursor = conn.cursor()
     
-    # Atualiza o status da atividade
+    # Atualiza o status da atividade através do UPDATE (SQL)
     cursor.execute(""" 
         UPDATE WORKFLOW_ATIVIDADES
         SET status = %s, atualizado_em = %s
         WHERE id = %s
     """, (status, datetime.now(), atividade_id))
     
-    # Obtém o workflow_id relacionado à atividade
+    # Pega o workflow_id que está relacionado na atividade do usuário
     cursor.execute(""" 
         SELECT workflow_id FROM WORKFLOW_ATIVIDADES WHERE id = %s
     """, (atividade_id,))
     workflow_id = cursor.fetchone()[0]
 
-    # Verifica quantas atividades estão pendentes
+    # Faz um COUNT pra saber quantas atividades estão pendentes
     cursor.execute(""" 
         SELECT COUNT(*) as pendentes FROM WORKFLOW_ATIVIDADES WHERE workflow_id = %s AND status = 'PENDENTE'
     """, (workflow_id,))
@@ -599,13 +608,13 @@ def aprovar_reprovar(atividade_id):
         """, (workflow_id,))
         aprovadas = cursor.fetchone()[0]
         
-        # Atualiza o status do workflow
+        # Atualiza o status do workflow de acordo com o novo_status
         novo_status = 'APROVADO' if aprovadas > 0 else 'REPROVADO'
         cursor.execute(""" 
             UPDATE WORKFLOW SET status = %s WHERE id = %s
         """, (novo_status, workflow_id))
 
-        # Obtém o tipo de workflow (criação, revisão ou cancelamento)
+        # Consulta o tipo de workflow (criação, revisão ou cancelamento) através de um SQL (banco de dados)
         cursor.execute(""" 
             SELECT form_id, tipo_workflow FROM WORKFLOW WHERE id = %s
         """, (workflow_id,))
@@ -615,51 +624,53 @@ def aprovar_reprovar(atividade_id):
 
         if novo_status == 'APROVADO':
             if tipo_workflow == 'criação':
-                # Atualiza o CURRENT e STATUS do documento para criação
+                # Atualiza o CURRENT, data de publicação e STATUS do documento se for criação
                 cursor.execute("""
                     UPDATE DCDOCUMENT SET CURRENT = 1, STATUS = 'HOMOLOGADO', DOCUMENT_DATE_PUBLISH = NOW() WHERE IDDOCUMENT = %s
                 """, (form_id,))
             elif tipo_workflow == 'revisão':
-                # Atualiza o CURRENT e STATUS do documento para revisão
+                # Atualiza o CURRENT, data de publicação e STATUS do documento se for revisão
                 cursor.execute("""
                     UPDATE DCDOCUMENT SET CURRENT = 1, STATUS = 'HOMOLOGADO', DOCUMENT_DATE_PUBLISH = NOW() WHERE IDDOCUMENT = %s
                 """, (form_id,))
-                # Atualiza o documento antigo para CURRENT = 2
+                # Atualiza o documento antigo para CURRENT = 2 (pois está agora desativado para uma nova versão)
                 cursor.execute("""
                     UPDATE DCDOCUMENT SET CURRENT = 2 WHERE IDDOCUMENT = %s AND CURRENT = 1
                 """, (form_id,))
             elif tipo_workflow == 'cancelamento':
-                # Atualiza o CURRENT e STATUS do documento para cancelamento
+                # Atualiza o CURRENT e STATUS do documento para cancelado, visto que foi aprovado o cancelamento
                 cursor.execute("""
                     UPDATE DCDOCUMENT SET CURRENT = 2, STATUS = 'CANCELADO' WHERE IDDOCUMENT = %s
                 """, (form_id,))
 
+    # Comita as alteração e fecha a conexão com o banco de dados
     conn.commit()
     cursor.close()
     conn.close()
+    
+    # Retorna para o Meu Portal
     return redirect(url_for('meu_portal'))
-
 
 # Rota para a pesquisa de documentos
 @app.route('/pesquisa_documentos', methods=['GET'])
-def pesquisa_documentos():
-    # Receber o termo de busca do formulário
-    termo_busca = request.args.get('document')
+def pesquisa_documentos(): 
+    termo_busca = request.args.get('document') # De acordo com o valor digitado pelo usuário salva no termo_busca
 
-    # Adicionando um log para verificar o termo de busca
+    # Adiciona um log para verificar o termo de busca
     if not termo_busca:
         return "Erro: Termo de busca não fornecido.", 400
 
-    # Conectar ao banco de dados
+    # Conecta com o banco de dados
     conn = connect_to_db()
     if conn is None:
         return "Erro ao conectar ao banco de dados.", 500
 
     cursor = conn.cursor(dictionary=True)
     
-    # Adicionando um log para ver a consulta SQL que está sendo executada
+    # Adiciona um log para ver a consulta SQL que está sendo executada pelo banco
     print(f"Consultando documentos com o termo: {termo_busca}")
     
+    # Faz um select (consulta) de acordo com o termo busca em uma lista de documentos
     cursor.execute("""
         SELECT D.IDDOCUMENT AS iddocument, D.NMDOCUMENT AS nmdocument, C.IDENTIFIER AS category, 
             D.DOCUMENT_DATE_PUBLISH AS document_date_publish, D.REDATOR AS redator, D.CDDOCUMENT AS cddocument, F.FILEPATH AS filepath
@@ -672,13 +683,14 @@ def pesquisa_documentos():
 
     documentos = cursor.fetchall()
     
-    # Verificando se o banco de dados retornou resultados
+    # Verifica se o banco de dados retornou algum resultado
     print(f"Documentos encontrados: {documentos}")
 
+    # Fecha a conexão com o banco de dados
     cursor.close()
     conn.close()
 
-    # Renderizar o template com os resultados
+    # Renderiza no template os resultados da pesquisa
     mensagem = ""
     if not documentos:
         mensagem = "Nenhum documento encontrado."
@@ -686,19 +698,21 @@ def pesquisa_documentos():
     return render_template('pesquisa_documentos.html', documentos=documentos, mensagem=mensagem)
 
 # Rota para visualizar o PDF na pesquisa
-@app.route('/view_pdf/<int:doc_id>', methods=['GET'])
+@app.route('/view_pdf/<int:doc_id>', methods=['GET']) # Método da requisição tipo GET
 def view_pdf(doc_id):
     # Conectar ao banco de dados
     conn = connect_to_db()
     cursor = conn.cursor(dictionary=True)
     
-    # Consulta para obter o nome do arquivo pelo CDDOCUMENT
+    # Consulta para pegar o nome do arquivo atrvés do CDDOCUMENT
     cursor.execute("SELECT FILENAME FROM DCFILE WHERE CDDOCUMENT = %s", (doc_id,))
     file_data = cursor.fetchone()
+
+    # Fecha a conexão com o banco de dados
     cursor.close()
     conn.close()
 
-    # Verifica se encontrou um arquivo para o CDDOCUMENT especificado
+    # Verifica se encontrou um arquivo para o CDDOCUMENT consultado
     if not file_data:
         app.logger.warning(f"PDF não encontrado no banco de dados para o CDDOCUMENT: {doc_id}")
         return jsonify({"error": "PDF não encontrado"}), 404
@@ -707,7 +721,7 @@ def view_pdf(doc_id):
     pdf_filename = file_data['FILENAME']
     pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], pdf_filename)
 
-    # Verifica se o arquivo existe no diretório especificado
+    # Verifica se o arquivo existe na pasta local dos PDF armazenado
     if not os.path.exists(pdf_path):
         app.logger.warning(f"Arquivo {pdf_filename} não encontrado no diretório: {app.config['UPLOAD_FOLDER']}")
         return jsonify({"error": f"Arquivo {pdf_filename} não encontrado no diretório."}), 404
@@ -719,34 +733,44 @@ def view_pdf(doc_id):
 # Rota para resumir o PDF usando a API do ChatGPT
 @app.route('/summarize_pdf/<int:doc_id>', methods=['GET'])
 def summarize_pdf(doc_id):
-    # Consulta ao banco de dados
+    # Conecta com o banco de dados
     conn = connect_to_db()
     cursor = conn.cursor(dictionary=True)
+    # Faz uma consulta pra pegar o nome do arquivo na tabela DCFILE de acordo com o CDDOCUMENT pesquisado
     cursor.execute("SELECT FILENAME FROM DCFILE WHERE CDDOCUMENT = %s", (doc_id,))
     file_data = cursor.fetchone()
+
+    # Fecha a conexão com o banco de dados
     cursor.close()
     conn.close()
 
+    # Se caso não tiver arquivo, trás uma mensagem de erro
     if not file_data:
         return jsonify({"error": "PDF não encontrado"}), 404
 
+    # De acordo com o PDF do documento, define o caminho
     pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], file_data['FILENAME'])
+
+    # Chama a função pra extrair o texto do PDF
     pdf_text = extract_text_from_pdf(pdf_path)
 
-    # Chamar API do ChatGPT
+    # Chama a API do ChatGPT pra resumir o texto extraído do PDF
     response = requests.post(
         "https://api.openai.com/v1/engines/davinci-codex/completions",
         headers={
-            "Authorization": f"Bearer {API_KEY}",
-            "Content-Type": "application/json"
+            "Authorization": f"Bearer {API_KEY}",   # chave de autenticação, de acordo com o pdf_view.env (API_KEY)
+            "Content-Type": "application/json"      # tipo de conteúdo (JSON)
         },
-        json={
+        json={ # corpo do JSON com o texto que vai ser colocado no chatGPT pra resumir
             "prompt": f"Resuma o seguinte texto:\n{pdf_text}",
-            "max_tokens": 150
+            "max_tokens": 150 #  Limite de tokens (palavras)
         }
     )
+
+    # Trás o resultado do chatGPT (API) ou retorna um erro caso não conseguir
     summary = response.json().get('choices', [{}])[0].get('text', 'Erro ao resumir o PDF')
 
+    # Retorna o resumo da resposta em formato JSON
     return jsonify({"summary": summary})
 
 
