@@ -1,7 +1,7 @@
 from elasticsearch import Elasticsearch
 from datetime import datetime
 
-# Decodificando a API (opcional - já que você já tem ela pronta)
+# Decodificar a API
 import base64
 
 api_key = 'YXFhZ09KSUJqQjRnOUlkTmRvZFU6NnRoaUtMOTNUTUtSeEJVdEt2YTFWdw=='
