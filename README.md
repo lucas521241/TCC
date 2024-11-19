@@ -11,25 +11,25 @@ A escolha do GED como tema de projeto foi baseada em:
 
 ## Funcionalidades Principais
 
-1. **Criação de documentos**: Suporta formatos como PDF, Word e Excel, além de controle de versão e categorização.
+1. **Criação de documentos**: Suporta formatos como PDF além de controle de versão e categorização.
 2. **Revisão de documentos**: Workflow de aprovação, histórico de alterações e controle de status.
 3. **Cancelamento de documentos**: Justificativas e processo de cancelamento de documentos obsoletos.
-4. **Controle de status**: Acompanhamento em tempo real dos status dos documentos (emitido, em revisão, aprovado, cancelado).
-5. **Pesquisa de documentos**: Busca avançada utilizando Elasticsearch com filtros por categoria, data, status e palavras-chave.
+4. **Controle de status**: Acompanhamento em tempo real dos status dos documentos (criação, revisão, cancelamento).
+5. **Pesquisa de documentos**: Busca avançada utilizando Elasticsearch com filtros por categoria, data, status e palavras-chave (em desenvolvimento).
 
 ## Tecnologias Utilizadas
 
-- **Front-end**: ReactJS
+- **Front-end**: HTML + CSS + vueJS/JavaScript
 - **Back-end**: Python com Flask (API RESTful)
-- **Banco de Dados**: MySQL
-- **Pesquisa de documentos**: Elasticsearch
+- **Banco de Dados**: MySQL Workbench
+- **Pesquisa de documentos**: MySQL + Elasticsearch (em desenvolvimento)
 
 ## Arquitetura
 
 O sistema é dividido em três principais componentes:
 - **Interface do usuário**: Interface amigável desenvolvida em HTML + CSS e vueJS/JavaScript.
-- **API RESTful**: Desenvolvida com Python/Flask, responsável por gerenciar documentos, usuários e permissões.
-- **Banco de dados**: Utiliza MySQL para armazenar os documentos e metadados, com suporte ao Elasticsearch para indexação de documentos.
+- **API RESTful**: Desenvolvida com Python/Flask, responsável por gerenciar documentos, banco de dados, processos e usuários.
+- **Banco de dados**: Utiliza MySQL para armazenar os documentos e metadados, com suporte ao Elasticsearch para indexação de documentos (em desenvolvimento).
 
 ## Cronograma de Desenvolvimento
 
@@ -56,11 +56,12 @@ O desenvolvimento foi dividido nas seguintes fases:
 
 1. **Inicializar o MYSQL**: Incializar o servidor no MYSQL workbench
 2. **Inicializar Aplicação Flask**: python app.py
-3. **Inicializar Aplicação**: python app.py
 
 ## Considerações Finais
 
 O Sistema de Gestão Eletrônica de Documentos (GED) é uma ferramenta essencial para a gestão eficiente de documentos em qualquer organização. Este projeto representa uma excelente oportunidade de aprimorar minhas habilidades técnicas e contribuir com soluções práticas para problemas organizacionais.
+
+Em uma futura oportunidade, implementar mais funcionalidades e com foco maior em segurança (permissões) e criação de fluxogramas personalizados.
 
 ## Autor
 
