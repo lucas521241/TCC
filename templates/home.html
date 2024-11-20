@@ -3,20 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
     <title>Docsnaipa - Home</title>
 </head>
 <body>
     <div class="toolbar">
-        <a href="/home">Home</a>
-        <a href="/minhas-tarefas">Minhas Tarefas</a>
-        <a href="/meu-portal">Meu Portal</a>
-        <span>Bem-vindo, {{ current_user.name_user }}</span>
-        <form id="search-form-toolbar" action="/pesquisa_documentos" method="get" class="search-toolbar-container">
-            <input type="text" placeholder="Pesquisar documentos..." class="search-toolbar" name="document">
-            <button type="submit" class="icon-search-toolbar"><i class="fas fa-search"></i></button>
-        </form>
+        <div class="toolbar-links">
+            <a href="/home">Home</a>
+            <a href="/minhas-tarefas">Minhas Tarefas</a>
+            <a href="/meu-portal">Meu Portal</a>
+        </div>
+        <div class="toolbar-info">
+            <span>Bem-vindo, {{ current_user.name_user }}</span>
+            <form id="search-form-toolbar" action="/pesquisa_documentos" method="get" class="search-toolbar-container">
+                <input type="text" placeholder="Pesquisar documentos..." class="search-toolbar" name="document">
+                <button type="submit" class="icon-search-toolbar"><i class="fas fa-search"></i></button>
+            </form>
+        </div>
     </div>
     
     <div class="banner">
@@ -24,11 +28,11 @@
     </div>
     
     <div class="search-container">
-        <form id="search-toolbar-container" action="/pesquisa_documentos" method="get" class="search-toolbar-container">
+        <form id="search-container-form" action="/pesquisa_documentos" method="get">
             <input type="text" placeholder="Pesquisar documento" class="search" name="document">
             <button type="submit" class="icon-search"><i class="fas fa-search"></i></button>
         </form>
-    </div>    
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
     <script src="{{ url_for('static', filename='js/search.js') }}"></script>

@@ -12,16 +12,45 @@ body {
     background-color: #007bff;
     padding: 10px 20px;
     color: white;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .toolbar a {
     color: white;
     text-decoration: none;
     margin-right: 15px;
+    font-size: 14px;
+    font-weight: bold;
 }
 
 .toolbar a:hover {
     text-decoration: underline;
+}
+
+.toolbar form {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+}
+
+.toolbar input {
+    padding: 5px;
+    border: none;
+    border-radius: 4px 0 0 4px;
+    outline: none;
+}
+
+.toolbar button {
+    background-color: #0056b3;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 0 4px 4px 0;
+}
+
+.toolbar button:hover {
+    background-color: #004494;
 }
 
 h1 {
@@ -30,7 +59,7 @@ h1 {
 }
 
 .tasks-container {
-    max-width: 600px;
+    max-width: 800px;
     margin: 20px auto;
     padding: 20px;
     background: white;
@@ -43,13 +72,22 @@ h1 {
     padding: 15px 0;
 }
 
-.approve-button, .reject-button {
+.task-item:last-child {
+    border-bottom: none;
+}
+
+.task-field {
+    margin-bottom: 10px;
+}
+
+.approve-button, .reject-button, .view-pdf-button {
     margin: 5px;
     padding: 10px 15px;
     border: none;
     border-radius: 4px;
     color: white;
     cursor: pointer;
+    font-size: 14px;
 }
 
 .approve-button {
@@ -68,3 +106,13 @@ h1 {
     background-color: #c82333;
 }
 
+.view-pdf-button {
+    background-color: #17a2b8;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+
+.view-pdf-button:hover {
+    background-color: #117a8b;
+}

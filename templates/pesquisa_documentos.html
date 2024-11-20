@@ -3,41 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pesquisa_documentos.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
     <title>Docsnaipa - Pesquisa de Documentos</title>
 </head>
 <body>
     <div class="toolbar">
-        <a href="/home">Home</a>
-        <a href="/minhas-tarefas">Minhas Tarefas</a>
-        <a href="/meu-portal">Meu Portal</a>
-        <span>Bem-vindo, {{ current_user.name_user }}</span>
-
-        <!-- Formulário de busca -->
-        <form id="search-form" action="/pesquisa_documentos" method="get" class="search-toolbar-container" onsubmit="event.preventDefault(); submitSearch()">
-            <input type="text" placeholder="Pesquisar documentos..." class="search-toolbar" name="document" id="search-input">
-            <button type="submit" class="icon-search-toolbar" onclick="submitSearch()"><i class="fas fa-search"></i></button>
-        </form>
+        <div class="toolbar-links">
+            <a href="/home">Home</a>
+            <a href="/minhas-tarefas">Minhas Tarefas</a>
+            <a href="/meu-portal">Meu Portal</a>
+        </div>
+        <div class="toolbar-info">
+            <span>Bem-vindo, {{ current_user.name_user }}</span>
+            <form id="search-form" action="/pesquisa_documentos" method="get" class="search-toolbar-container" onsubmit="event.preventDefault(); submitSearch()">
+                <input type="text" placeholder="Pesquisar documentos..." class="search-toolbar" name="document" id="search-input">
+                <button type="submit" class="icon-search-toolbar"><i class="fas fa-search"></i></button>
+            </form>
+        </div>
     </div>
 
-    <h1>Pesquisa de Documentos</h1>
+    <div class="header">
+        <h1>Pesquisa de Documentos</h1>
+        <p>{{ mensagem }}</p>
+    </div>
 
-    <p>{{ mensagem }}</p>
-
-    <ul>
-        {% for doc in documentos %}
-            <li>
+    <div class="results-container">
+        <ul class="results-list">
+            {% for doc in documentos %}
+            <li class="result-item">
                 <p><strong>ID:</strong> {{ doc['iddocument'] }}</p>
                 <p><strong>Nome:</strong> {{ doc['nmdocument'] }}</p>
                 <p><strong>Categoria:</strong> {{ doc['category'] }}</p>
                 <p><strong>Data de Publicação:</strong> {{ doc['document_date_publish'] }}</p>
                 <p><strong>Redator:</strong> {{ doc['redator'] }}</p>
-                <a href="/view_pdf/{{ doc['cddocument'] }}" class="view-pdf-button">Visualizar PDF</a>
-                <a href="/summarize_pdf/{{ doc['cddocument'] }}" class="summarize-pdf-button">Resumir PDF</a>
+                <div class="result-actions">
+                    <a href="/view_pdf/{{ doc['cddocument'] }}" class="view-button">Visualizar PDF</a>
+                    <a href="/summarize_pdf/{{ doc['cddocument'] }}" class="summarize-button">Resumir PDF</a>
+                </div>
             </li>
-        {% endfor %}
-    </ul>
+            {% endfor %}
+        </ul>
+    </div>
 
     <div id="app-pdf-viewer">
         <h2 id="pdf-title">{{ documentTitle }}</h2>
@@ -48,7 +55,6 @@
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
     <script src="{{ url_for('static', filename='js/animations.js') }}"></script>
     <script>
-        // Função para submeter a busca
         function submitSearch() {
             document.getElementById('search-form').submit();
         }

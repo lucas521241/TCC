@@ -12,16 +12,45 @@ body {
     background-color: #007bff;
     padding: 10px 20px;
     color: white;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .toolbar a {
     color: white;
     text-decoration: none;
     margin-right: 15px;
+    font-size: 14px;
+    font-weight: bold;
 }
 
 .toolbar a:hover {
     text-decoration: underline;
+}
+
+.toolbar form {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+}
+
+.toolbar input {
+    padding: 5px;
+    border: none;
+    border-radius: 4px 0 0 4px;
+    outline: none;
+}
+
+.toolbar button {
+    background-color: #0056b3;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 0 4px 4px 0;
+}
+
+.toolbar button:hover {
+    background-color: #004494;
 }
 
 h1 {
