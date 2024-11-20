@@ -1,6 +1,6 @@
 body {
     font-family: Arial, sans-serif;
-    background-color: #f8f9fa;
+    background-color: #e9ecef;
     margin: 0;
     padding: 0;
 }
@@ -14,8 +14,23 @@ body {
     color: white;
 }
 
+.toolbar a {
+    color: white;
+    text-decoration: none;
+    margin-right: 15px;
+}
+
+.toolbar a:hover {
+    text-decoration: underline;
+}
+
+h1 {
+    text-align: center;
+    margin-top: 20px;
+}
+
 .tasks-container {
-    max-width: 800px;
+    max-width: 600px;
     margin: 20px auto;
     padding: 20px;
     background: white;

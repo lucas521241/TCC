@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/meu_portal.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
     <title>Docsnaipa - Meu Portal</title>
 </head>
@@ -14,7 +14,7 @@
         <a href="/meu-portal">Meu Portal</a>
         <span>Bem-vindo, {{ current_user.name_user }}</span>
         <form id="search-form-toolbar" action="/pesquisa_documentos" method="get" class="search-toolbar-container">
-            <input type="text" placeholder="Pesquisar documentos..." class="search-toolbar" name="document">
+            <input type="text" placeholder="Pesquisar documentos..." class="search-toolbar" name="document" id="search-input">
             <button type="submit" class="icon-search-toolbar"><i class="fas fa-search"></i></button>
         </form>
     </div>
