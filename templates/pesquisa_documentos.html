@@ -38,18 +38,12 @@
                 <p><strong>Data de Publicação:</strong> {{ doc['document_date_publish'] }}</p>
                 <p><strong>Redator:</strong> {{ doc['redator'] }}</p>
                 <div class="result-actions">
-                    <a href="/view_pdf/{{ doc['cddocument'] }}" class="view-button">Visualizar PDF</a>
-                    <a href="/summarize_pdf/{{ doc['cddocument'] }}" class="summarize-button">Resumir PDF</a>
+                    <a href="/view_pdf/{{ doc['cddocument'] }}" class="view-button" target="_blank">Visualizar PDF</a>
+                    <a href="/summarize_pdf/{{ doc['cddocument'] }}" class="summarize-button" target="_blank">Resumir PDF</a>
                 </div>
             </li>
             {% endfor %}
         </ul>
-    </div>
-
-    <div id="app-pdf-viewer">
-        <h2 id="pdf-title">{{ documentTitle }}</h2>
-        <iframe id="pdf-frame" src="" width="100%" height="600px"></iframe>
-        <p id="pdf-summary">{{ summary }}</p>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>

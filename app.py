@@ -13,16 +13,31 @@ import PyPDF2  # Biblioteca para manipulação de PDFs
 import logging  # Configuração de logs para depuração e auditoria
 import requests  # Para realizar requisições HTTP
 
-# Carrega as variáveis de ambiente do arquivo .env
-# Isso é útil para configurar informações sensíveis como chaves de API e credenciais
-load_dotenv()
+# Inicializando a aplicação Flask
+app = Flask(__name__)
+
+# Configuração do log
+logging.basicConfig(level=logging.INFO)
+file_handler = logging.FileHandler('app.log')
+file_handler.setLevel(logging.INFO)
+app.logger.addHandler(file_handler)
+
+# Pra pegar a pasta do app.py
+base_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Pra construir o caminho pro arquivo .env (API)
+dotenv_path = os.path.join(base_dir, "pdf_view.env")
+
+# Carregue a variavel pro ambiente
+load_dotenv(dotenv_path)
 
 # Chave de API do OpenAI
 # Usada para integração com a API do ChatGPT
 API_KEY = os.getenv("OPENAI_API_KEY")
-
-# Inicializando a aplicação Flask
-app = Flask(__name__)
+if not API_KEY:
+    app.logger.error("API_KEY não foi carregada. Verifique o arquivo pdf_view.env e o uso do load_dotenv.")
+else:
+    app.logger.info("API_KEY carregada com sucesso.")
 
 # Configurando o Flask-Login para gerenciar autenticação de usuários
 login_manager = LoginManager()
@@ -101,13 +116,26 @@ def obter_documentos():
 
 # Função para pegar o texto do PDF e depois jogar pra API do chatGPT (resumir PDF) no chatGPT
 def extract_text_from_pdf(pdf_path):
-    with open(pdf_path, 'rb') as file:
-        reader = PyPDF2.PdfReader(file)
-        text = ''
-        # Aqui ele vai pegar e verificar todas as páginas do PDF
-        for page in reader.pages:
-            text += page.extract_text() or ''
-        return text
+    try:
+        with open(pdf_path, 'rb') as file:
+            reader = PyPDF2.PdfReader(file)
+            text = ''
+            # Log para verificar se o PDF foi lido corretamente
+            if not reader.pages:
+                app.logger.error(f"PDF {pdf_path} não possui páginas ou não pode ser lido.")
+                return ''
+
+            # Aqui ele vai pegar e verificar todas as páginas do PDF
+            for page_num, page in enumerate(reader.pages, start=1):
+                page_text = page.extract_text() or ''
+                if not page_text:
+                    app.logger.warning(f"Texto da página {page_num} do PDF {pdf_path} está vazio.")
+                text += page_text
+            app.logger.info(f"Texto extraído do PDF {pdf_path} com sucesso.")
+            return text
+    except Exception as e:
+        app.logger.error(f"Erro ao tentar extrair texto do PDF {pdf_path}: {e}")
+        return ''
 
 # Função para verificar se o arquivo que foi feito upload é PDF (só um check a mais)
 def allowed_file(filename):
@@ -733,45 +761,69 @@ def view_pdf(doc_id):
 # Rota para resumir o PDF usando a API do ChatGPT
 @app.route('/summarize_pdf/<int:doc_id>', methods=['GET'])
 def summarize_pdf(doc_id):
-    # Conecta com o banco de dados
-    conn = connect_to_db()
-    cursor = conn.cursor(dictionary=True)
-    # Faz uma consulta pra pegar o nome do arquivo na tabela DCFILE de acordo com o CDDOCUMENT pesquisado
-    cursor.execute("SELECT FILENAME FROM DCFILE WHERE CDDOCUMENT = %s", (doc_id,))
-    file_data = cursor.fetchone()
+    try:
+        # Conecta com o banco de dados
+        conn = connect_to_db()
+        cursor = conn.cursor(dictionary=True)
 
-    # Fecha a conexão com o banco de dados
-    cursor.close()
-    conn.close()
+        # Faz uma consulta para pegar o nome do arquivo na tabela DCFILE
+        cursor.execute("SELECT FILENAME FROM DCFILE WHERE CDDOCUMENT = %s", (doc_id,))
+        file_data = cursor.fetchone()
 
-    # Se caso não tiver arquivo, trás uma mensagem de erro
-    if not file_data:
-        return jsonify({"error": "PDF não encontrado"}), 404
+        # Fecha a conexão com o banco de dados
+        cursor.close()
+        conn.close()
 
-    # De acordo com o PDF do documento, define o caminho
-    pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], file_data['FILENAME'])
+        # Verifica se o arquivo foi encontrado no banco de dados
+        if not file_data:
+            app.logger.error(f"Nenhum PDF encontrado para o documento com CDDOCUMENT {doc_id}.")
+            return jsonify({"error": "PDF não encontrado"}), 404
 
-    # Chama a função pra extrair o texto do PDF
-    pdf_text = extract_text_from_pdf(pdf_path)
+        # Define o caminho do PDF
+        pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], file_data['FILENAME'])
+        if not os.path.exists(pdf_path):
+            app.logger.error(f"O arquivo PDF {pdf_path} não existe.")
+            return jsonify({"error": "Arquivo PDF não encontrado no servidor"}), 404
 
-    # Chama a API do ChatGPT pra resumir o texto extraído do PDF
-    response = requests.post(
-        "https://api.openai.com/v1/engines/davinci-codex/completions",
-        headers={
-            "Authorization": f"Bearer {API_KEY}",   # chave de autenticação, de acordo com o pdf_view.env (API_KEY)
-            "Content-Type": "application/json"      # tipo de conteúdo (JSON)
-        },
-        json={ # corpo do JSON com o texto que vai ser colocado no chatGPT pra resumir
-            "prompt": f"Resuma o seguinte texto:\n{pdf_text}",
-            "max_tokens": 150 #  Limite de tokens (palavras)
-        }
-    )
+        # Extrai texto do PDF
+        pdf_text = extract_text_from_pdf(pdf_path)
+        if not pdf_text.strip():
+            app.logger.error(f"Texto do PDF {pdf_path} está vazio ou não pôde ser extraído.")
+            return jsonify({"error": "Não foi possível extrair o texto do PDF"}), 500
 
-    # Trás o resultado do chatGPT (API) ou retorna um erro caso não conseguir
-    summary = response.json().get('choices', [{}])[0].get('text', 'Erro ao resumir o PDF')
+        # Faz a requisição para a API do ChatGPT
+        response = requests.post(
+            "https://api.openai.com/v1/chat/completions", 
+            headers={
+                "Authorization": f"Bearer {API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "gpt-3.5-turbo",
+                "messages": [
+                    {"role": "system", "content": "Bora dale."},
+                    {"role": "user", "content": f"Resuma pra mim o seguinte texto:\n{pdf_text}"}
+                ],
+                "max_tokens": 150  # Limite de tokens no resumo
+            }
+        )
 
-    # Retorna o resumo da resposta em formato JSON
-    return jsonify({"summary": summary})
+        # Processa a resposta da API
+        if response.status_code != 200:
+            app.logger.error(f"Erro na chamada da API do ChatGPT: {response.text}")
+            return jsonify({"error": "Erro ao comunicar com a API do ChatGPT"}), 500
+
+        summary = response.json().get('choices', [{}])[0].get('message', {}).get('content', '').strip()
+        if not summary:
+            app.logger.warning(f"Resumo vazio retornado pela API do ChatGPT para o documento {doc_id}.")
+            return jsonify({"error": "Não foi possível resumir o texto do PDF"}), 500
+
+        app.logger.info(f"Resumo gerado com sucesso para o documento {doc_id}.")
+        return jsonify({"summary": summary})
+
+    except Exception as e:
+        app.logger.error(f"Erro na rota /summarize_pdf para o documento {doc_id}: {e}")
+        return jsonify({"error": "Erro interno no servidor"}), 500
 
 
 # Executar o app Flask
