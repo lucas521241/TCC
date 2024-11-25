@@ -49,6 +49,14 @@
             {% endfor %}
         </select>
 
+        <label for="usuario-aprovador">Selecione o Aprovador:</label>
+        <select id="usuario-aprovador" name="usuario_aprovador" required>
+            <option value="" disabled selected>Selecione um aprovador</option>
+            {% for usuario in usuarios %}
+                <option value="{{ usuario.ID }}">{{ usuario.NAME_USER }}</option>
+            {% endfor %}
+        </select>
+        
         <label for="motivo-cancel">Motivo:</label>
         <textarea id="motivo-cancel" name="motivo" placeholder="Descreva o motivo da criação" required></textarea>
 
@@ -86,6 +94,14 @@
             {% endfor %}
         </select>
 
+        <label for="usuario-aprovador">Selecione o Aprovador:</label>
+        <select id="usuario-aprovador" name="usuario_aprovador" required>
+            <option value="" disabled selected>Selecione um aprovador</option>
+            {% for usuario in usuarios %}
+                <option value="{{ usuario.ID }}">{{ usuario.NAME_USER }}</option>
+            {% endfor %}
+        </select>
+
         <label for="motivo-cancel">Motivo:</label>
         <textarea id="motivo-cancel" name="motivo" placeholder="Descreva o motivo da revisão" required></textarea>
 
@@ -109,6 +125,14 @@
             <option value="" disabled selected>Selecione um identificador</option>
             {% for documento in documentos %}
                 <option value="{{ documento.CDDOCUMENT }}">{{ documento.IDDOCUMENT }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="usuario-aprovador">Selecione o Aprovador:</label>
+        <select id="usuario-aprovador" name="usuario_aprovador" required>
+            <option value="" disabled selected>Selecione um aprovador</option>
+            {% for usuario in usuarios %}
+                <option value="{{ usuario.ID }}">{{ usuario.NAME_USER }}</option>
             {% endfor %}
         </select>
 
