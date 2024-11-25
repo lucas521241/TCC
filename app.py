@@ -98,6 +98,22 @@ def obter_categorias():
         print(f"Erro ao obter categorias: {e}")
         return []
 
+# Função pra pegar a lista de usuários no banco e passar pro formulário no html
+def obter_usuarios():
+    try:
+        conn = connect_to_db()
+        cursor = conn.cursor(dictionary=True)
+        query = "SSELECT ID, NAME_USER FROM USERS"
+        cursor.execute(query)
+        usuarios = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return usuarios
+    except Exception as e:
+        print(f"Erro ao obter usuários: {e}")
+        return []
+
+
 # Função para pegar os documentos existentes no banco e que são ativos (current)
 def obter_documentos():
     try:
@@ -255,6 +271,10 @@ def meu_portal():
     cursor.execute("SELECT IDCATEGORY, IDENTIFIER FROM DCCATEGORY")
     categorias = cursor.fetchall()
 
+    # Busca os usuários pra aprovação
+    cursor.execute("SELECT ID, NAME_USER FROM USERS")
+    usuarios = cursor.fetchall()
+
     # Busca documentos ativos (current = 1) no banco de dados
     cursor.execute("SELECT CDDOCUMENT, IDDOCUMENT FROM DCDOCUMENT WHERE CURRENT = 1")
     documentos = cursor.fetchall()
@@ -264,7 +284,7 @@ def meu_portal():
     conn.close()
 
     # Passa as categorias e os documentos pro template
-    return render_template('meu_portal.html', categorias=categorias, documentos=documentos)
+    return render_template('meu_portal.html', categorias=categorias, usuarios=usuarios, documentos=documentos)
 
 # Rota para inserir documento no banco e o PDF que foi anexado
 @app.route('/inserir-documento', methods=['GET', 'POST'])
@@ -276,6 +296,7 @@ def inserir_documento():
         identificador = request.form.get('identificadorCriacao')        # Pega o valor digitado no formulário e salva na variavel identificador
         nome_documento = request.form.get('nome_documentoCriacao')      # Pega o valor digitado no formulário e salva na variavel nome_documento
         category = request.form.get('categoriaCriacao')                 # Pega o valor digitado no formulário e salva na variavel category
+        usuario_aprovador = request.form.get('usuario_aprovador')       # Pega o ID do usuário selecionado para aprovação
         autor = request.form.get('autor')                               # Pega o valor digitado no formulário e salva na variavel autor
         solicitante = request.form.get('autor')                         # Pega o valor digitado no formulário e salva na variavel solicitante
         motivo = request.form.get('motivo')                             # Pega o valor digitado no formulário e salva na variavel motivo
@@ -328,8 +349,7 @@ def inserir_documento():
                 """, (identificador, motivo, solicitante))
                 workflow_id = cursor.lastrowid
 
-                # Define por padrão um usuário através do ID dele (OBS: Por enquanto está sendo colocado direto, futuramente pode ser colocado pra vir de acordo com o formulário)
-                usuario_aprovador = 1  # ID do usuário aprovador
+                # Insere a atividade pro usuário conforme formulário
                 cursor.execute(""" 
                     INSERT INTO WORKFLOW_ATIVIDADES (workflow_id, usuario_id, status)
                     VALUES (%s, %s, 'PENDENTE')
@@ -363,6 +383,7 @@ def revisar_documento():
         identificador = request.form['identificador']       # Pega o valor digitado no formulário e salva na variavel identificador
         nome_documento = request.form['nome_documento']     # Pega o valor digitado no formulário e salva na variavel nome_documento
         category = request.form['categoria']                # Pega o valor digitado no formulário e salva na variavel category
+        usuario_aprovador = request.form.get('usuario_aprovador')       # Pega o ID do usuário selecionado para aprovação
         autor = request.form.get('autor')                   # Pega o valor digitado no formulário e salva na variavel autor
         motivo = request.form('motivo')                     # Pega o valor digitado no formulário e salva na variavel motivo
         solicitante = request.form.get('autor')             # Pega o valor digitado no formulário e salva na variavel solicitante
@@ -430,8 +451,7 @@ def revisar_documento():
                 """, (identificador, motivo, solicitante))
                 workflow_id = cursor.lastrowid
                 
-                # Inserer o usuario_aprovado pra 1 e colocar isso no banco
-                usuario_aprovador = 1
+                # Insere a atividade pro usuário conforme formulário
                 cursor.execute(""" 
                     INSERT INTO WORKFLOW_ATIVIDADES (workflow_id, usuario_id, status)
                     VALUES (%s, %s, 'PENDENTE')
@@ -457,9 +477,10 @@ def revisar_documento():
 # Rota para iniciar um cancelamento
 @app.route('/iniciar-cancelamento', methods=['POST'])
 def iniciar_cancelamento():
-    identificador = request.form['identificador']       # Pega o valor digitado no formulário e salva na variavel identificador
-    motivo = request.form['motivo']                     # Pega o valor digitado no formulário e salva na variavel motivo
-    solicitante = request.form.get('autor')             # Pega o valor digitado no formulário e salva na variavel solicitante
+    identificador = request.form['identificador']               # Pega o valor digitado no formulário e salva na variavel identificador
+    usuario_aprovador = request.form.get('usuario_aprovador')   # Pega o ID do usuário selecionado para aprovação
+    motivo = request.form['motivo']                             # Pega o valor digitado no formulário e salva na variavel motivo
+    solicitante = request.form.get('autor')                     # Pega o valor digitado no formulário e salva na variavel solicitante
 
     try:
         # Se conecta no banco
@@ -472,8 +493,7 @@ def iniciar_cancelamento():
         """, (identificador, motivo, solicitante))
         workflow_id = cursor.lastrowid
         
-        # Definir usuário que irá aprovar com ID = 1
-        usuario_aprovador = 1
+        # Insere a atividade pro usuário conforme formulário
         cursor.execute(""" 
             INSERT INTO WORKFLOW_ATIVIDADES (workflow_id, usuario_id, status)
             VALUES (%s, %s, 'PENDENTE')
