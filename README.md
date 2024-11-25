@@ -48,7 +48,7 @@ O desenvolvimento foi dividido nas seguintes fases:
 ## Dependências
 
 - **requirements.txt**: Para executar o projeto, você precisa ter instalado as dependências que estão no requirements.txt do projeto. Para isso, digite: pip install -r requirements.txt
-- **ElasticSearch**: Para Certifique-se de que o Elasticsearch está instalado e em execução localmente na porta 9200.
+- **ElasticSearch**: Certifique-se de que o Elasticsearch está instalado e em execução localmente na porta 9200.
 - **JDBC Driver**: O projeto utiliza o driver JDBC para conectar ao MySQL. Você deve ter o mysql-connector-java instalado. A configuração está no arquivo: mysql_to_elasticsearch.conf
 - **Logstash**: Para realizar a integração entre o MySQL e o Elasticsearch, você precisará do Logstash. A configuração está no arquivo: mysql_to_elasticsearch.conf
 
