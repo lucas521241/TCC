@@ -1,5 +1,7 @@
-# Importações necessárias para o funcionamento da aplicação
-# Flask é o framework principal, Flask-Login para gerenciar autenticação, dotenv para variáveis de ambiente
+# Importações necessárias para o funcionamento do projeto (aplicação)
+# Flask é o framework principal que to usando pra criar as rotas da aplicação
+# Flask-Login é muito importante por que preciso gerenciar as autenticações dos usuários.
+# dotenv foi importante pra conseguir configurar a API do chatGPT para resumir os PDF.
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory
 from flask_login import LoginManager, login_user, current_user, login_required, UserMixin
 from werkzeug.utils import secure_filename
@@ -57,7 +59,7 @@ else:
     app.secret_key = os.getenv('FLASK_SECRET_KEY')
 
 # Configurações de conexão ao MYSQL Workbench (OBS: Precisa inicializar ele pra funcionar)
-mydb_config = {
+mysql_db_config = {
     'host': "127.0.0.1",    # host do banco
     'port': "3306",         # Porta do banco
     'user': "root",         # Usuario do banco
@@ -68,7 +70,7 @@ mydb_config = {
 # Função auxiliar para conectar ao banco de dados no MYSQL e centralizar a lógica de conexão
 def connect_to_db():
     try:
-        conn = mysql.connector.connect(**mydb_config)
+        conn = mysql.connector.connect(**mysql_db_config)
         if conn.is_connected():
             print("Conectado ao MySQL Server")
             return conn
@@ -131,7 +133,7 @@ def obter_documentos():
         return []
 
 # Função para pegar o texto do PDF e depois jogar pra API do chatGPT (resumir PDF) no chatGPT
-def extract_text_from_pdf(pdf_path):
+def extrair_texto_pdf(pdf_path):
     try:
         with open(pdf_path, 'rb') as file:
             reader = PyPDF2.PdfReader(file)
@@ -520,8 +522,8 @@ def minhas_tarefas():
     conn = connect_to_db()
     if conn is None:
         # Caso der erro, logar isso nos logs da aplicação
-        app.logger.info("Erro ao conectar ao banco de dados.")
-        return "Erro ao conectar ao banco de dados."
+        app.logger.info("Erro pra se conectar no banco de dados.")
+        return "Erro ao se conectar no banco de dados."
     cursor = conn.cursor(dictionary=True)
 
     # Faz uma consulta com o filtro do usuário e atividades pendentes
@@ -564,7 +566,7 @@ def minhas_tarefas():
     if not tarefas:
         app.logger.info("Nenhuma tarefa pendente encontrada.")
     else:
-        app.logger.info(f"Tarefas retornadas: {tarefas}")
+        app.logger.info(f"Tarefas encontradas: {tarefas}")
 
     # Fecha a conexão com o banco
     cursor.close()
@@ -577,7 +579,7 @@ def minhas_tarefas():
 @app.route('/visualizar_pdf/<int:tarefa_id>', methods=['GET'])
 def visualizar_pdf(tarefa_id):
     # Log para verificar o ID da tarefa
-    app.logger.info(f"Visualizando PDF para a tarefa com ID: {tarefa_id}")
+    app.logger.info(f"Visualizar PDF pra tarefa com ID: {tarefa_id}")
 
     # Conecta ao banco de dados
     conn = connect_to_db()
@@ -806,9 +808,9 @@ def summarize_pdf(doc_id):
             return jsonify({"error": "Arquivo PDF não encontrado no servidor"}), 404
 
         # Extrai texto do PDF
-        pdf_text = extract_text_from_pdf(pdf_path)
-        if not pdf_text.strip():
-            app.logger.error(f"Texto do PDF {pdf_path} está vazio ou não pôde ser extraído.")
+        pdf_texto = extrair_texto_pdf(pdf_path)
+        if not pdf_texto.strip():
+            app.logger.error(f"Texto do PDF {pdf_path} tá vazio ou não foi possível extrair.")
             return jsonify({"error": "Não foi possível extrair o texto do PDF"}), 500
 
         # Faz a requisição para a API do ChatGPT
@@ -822,7 +824,7 @@ def summarize_pdf(doc_id):
                 "model": "gpt-3.5-turbo",
                 "messages": [
                     {"role": "system", "content": "Bora dale."},
-                    {"role": "user", "content": f"Resuma pra mim o seguinte texto:\n{pdf_text}"}
+                    {"role": "user", "content": f"Resuma pra mim o seguinte texto:\n{pdf_texto}"}
                 ],
                 "max_tokens": 150  # Limite de tokens no resumo
             }
@@ -838,7 +840,7 @@ def summarize_pdf(doc_id):
             app.logger.warning(f"Resumo vazio retornado pela API do ChatGPT para o documento {doc_id}.")
             return jsonify({"error": "Não foi possível resumir o texto do PDF"}), 500
 
-        app.logger.info(f"Resumo gerado com sucesso para o documento {doc_id}.")
+        app.logger.info(f"Resumo do PDF gerado pelo CHATGPT pro documento {doc_id}.")
         return jsonify({"summary": summary})
 
     except Exception as e:
