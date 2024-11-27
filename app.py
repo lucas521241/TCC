@@ -103,7 +103,7 @@ def obter_usuarios():
     try:
         conn = connect_to_db()
         cursor = conn.cursor(dictionary=True)
-        query = "SSELECT ID, NAME_USER FROM USERS"
+        query = "SELECT ID, NAME_USER FROM USERS"
         cursor.execute(query)
         usuarios = cursor.fetchall()
         cursor.close()
