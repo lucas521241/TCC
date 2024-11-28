@@ -14,6 +14,8 @@ import secrets  # Para geração de chaves seguras
 import PyPDF2  # Biblioteca para manipulação de PDFs
 import logging  # Configuração de logs para depuração e auditoria
 import requests  # Para realizar requisições HTTP
+import websocket # Será usado para interagir com a API do ChatGPT em modo real-time
+import json # Pra manipular dados no formato JSON
 
 # Inicializando a aplicação Flask
 app = Flask(__name__)
@@ -780,7 +782,7 @@ def view_pdf(doc_id):
     return send_from_directory(app.config['UPLOAD_FOLDER'], pdf_filename)
 
 
-# Rota para resumir o PDF usando a API do ChatGPT
+# Rota para resumir o PDF usando a API do ChatGPT (real-time)
 @app.route('/summarize_pdf/<int:doc_id>', methods=['GET'])
 def summarize_pdf(doc_id):
     try:
@@ -788,7 +790,7 @@ def summarize_pdf(doc_id):
         conn = connect_to_db()
         cursor = conn.cursor(dictionary=True)
 
-        # Faz uma consulta para pegar o nome do arquivo na tabela DCFILE
+        # Busca o nome do arquivo na tabela DCFILE para o documento solicitado
         cursor.execute("SELECT FILENAME FROM DCFILE WHERE CDDOCUMENT = %s", (doc_id,))
         file_data = cursor.fetchone()
 
@@ -796,12 +798,12 @@ def summarize_pdf(doc_id):
         cursor.close()
         conn.close()
 
-        # Verifica se o arquivo foi encontrado no banco de dados
+        # Verifica se o arquivo foi encontrado
         if not file_data:
             app.logger.error(f"Nenhum PDF encontrado para o documento com CDDOCUMENT {doc_id}.")
             return jsonify({"error": "PDF não encontrado"}), 404
 
-        # Define o caminho do PDF
+        # Define o caminho do PDF e verifica se ele existe
         pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], file_data['FILENAME'])
         if not os.path.exists(pdf_path):
             app.logger.error(f"O arquivo PDF {pdf_path} não existe.")
@@ -813,39 +815,59 @@ def summarize_pdf(doc_id):
             app.logger.error(f"Texto do PDF {pdf_path} tá vazio ou não foi possível extrair.")
             return jsonify({"error": "Não foi possível extrair o texto do PDF"}), 500
 
-        # Faz a requisição para a API do ChatGPT
-        response = requests.post(
-            "https://api.openai.com/v1/chat/completions", 
-            headers={
+        # Configuração do WebSocket para comunicação com a API do ChatGPT
+        url = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01"
+
+        def on_open(ws):
+            app.logger.info("Conexão com a API do ChatGPT iniciada.")
+            # Envia a solicitação inicial ao abrir a conexão
+            ws.send(json.dumps({
+                "type": "response.create",
+                "response": {
+                    "modalities": ["text"],
+                    "instructions": f"Resuma o seguinte texto:\n{pdf_texto}"
+                }
+            }))
+
+        def on_message(ws, message):
+            # Recebe a resposta da API e encerra a conexão
+            response = json.loads(message)
+            ws.close()
+            summary = response.get('content', '').strip()
+            if not summary:
+                app.logger.warning(f"Resumo vazio retornado pela API do ChatGPT para o documento {doc_id}.")
+                return jsonify({"error": "Não foi possível resumir o texto do PDF"}), 500
+
+            # Retorna o resumo
+            app.logger.info(f"Resumo do PDF gerado pelo ChatGPT para o documento {doc_id}.")
+            return jsonify({"summary": summary})
+
+        def on_error(ws, error):
+            app.logger.error(f"Erro na comunicação com a API do ChatGPT: {error}")
+
+        def on_close(ws, close_status_code, close_msg):
+            app.logger.info("Conexão com a API do ChatGPT encerrada.")
+
+        # Cria a conexão WebSocket
+        ws = websocket.WebSocketApp(
+            url,
+            header={
                 "Authorization": f"Bearer {API_KEY}",
-                "Content-Type": "application/json"
+                "OpenAI-Beta": "realtime=v1"
             },
-            json={
-                "model": "gpt-3.5-turbo",
-                "messages": [
-                    {"role": "system", "content": "Bora dale."},
-                    {"role": "user", "content": f"Resuma pra mim o seguinte texto:\n{pdf_texto}"}
-                ],
-                "max_tokens": 150  # Limite de tokens no resumo
-            }
+            on_open=on_open,
+            on_message=on_message,
+            on_error=on_error,
+            on_close=on_close,
         )
 
-        # Processa a resposta da API
-        if response.status_code != 200:
-            app.logger.error(f"Erro na chamada da API do ChatGPT: {response.text}")
-            return jsonify({"error": "Erro ao comunicar com a API do ChatGPT"}), 500
-
-        summary = response.json().get('choices', [{}])[0].get('message', {}).get('content', '').strip()
-        if not summary:
-            app.logger.warning(f"Resumo vazio retornado pela API do ChatGPT para o documento {doc_id}.")
-            return jsonify({"error": "Não foi possível resumir o texto do PDF"}), 500
-
-        app.logger.info(f"Resumo do PDF gerado pelo CHATGPT pro documento {doc_id}.")
-        return jsonify({"summary": summary})
+        # Executa a conexão WebSocket
+        ws.run_forever()
 
     except Exception as e:
         app.logger.error(f"Erro na rota /summarize_pdf para o documento {doc_id}: {e}")
         return jsonify({"error": "Erro interno no servidor"}), 500
+
 
 
 # Executar o app Flask
