@@ -15,7 +15,6 @@ import secrets  # Para geração de chaves seguras
 import PyPDF2  # Biblioteca para manipulação de PDFs
 import logging  # Configuração de logs para depuração e auditoria
 import requests  # Para realizar requisições HTTP
-import websocket # Será usado para interagir com a API do ChatGPT em modo real-time
 import json # Pra manipular dados no formato JSON
 
 # Inicializando a aplicação Flask
