@@ -15,6 +15,8 @@ import secrets  # Para geração de chaves seguras
 import PyPDF2  # Biblioteca para manipulação de PDFs
 import logging  # Configuração de logs para depuração e auditoria
 import requests  # Para realizar requisições HTTP
+import websocket # Será usado para interagir com a API do ChatGPT em modo real-time
+import json # Pra manipular dados no formato JSON
 
 # Inicializando a aplicação Flask
 app = Flask(__name__)
@@ -781,7 +783,7 @@ def view_pdf(doc_id):
     return send_from_directory(app.config['UPLOAD_FOLDER'], pdf_filename)
 
 
-# Rota para resumir o PDF usando a API do ChatGPT
+# Rota para resumir o PDF usando a API do ChatGPT (real-time)
 @app.route('/summarize_pdf/<int:doc_id>', methods=['GET'])
 def summarize_pdf(doc_id):
     try:
@@ -804,7 +806,7 @@ def summarize_pdf(doc_id):
         conn = connect_to_db()
         cursor = conn.cursor(dictionary=True)
 
-        # Faz uma consulta para pegar o nome do arquivo na tabela DCFILE
+        # Busca o nome do arquivo na tabela DCFILE para o documento solicitado
         cursor.execute("SELECT FILENAME FROM DCFILE WHERE CDDOCUMENT = %s", (doc_id,))
         file_data = cursor.fetchone()
 
@@ -812,12 +814,12 @@ def summarize_pdf(doc_id):
         cursor.close()
         conn.close()
 
-        # Verifica se o arquivo foi encontrado no banco de dados
+        # Verifica se o arquivo foi encontrado
         if not file_data:
             app.logger.error(f"Nenhum PDF encontrado para o documento com CDDOCUMENT {doc_id}.")
             return jsonify({"error": "PDF não encontrado"}), 404
 
-        # Define o caminho do PDF
+        # Define o caminho do PDF e verifica se ele existe
         pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], file_data['FILENAME'])
         if not os.path.exists(pdf_path):
             app.logger.error(f"O arquivo PDF {pdf_path} não existe.")
