@@ -7,6 +7,7 @@ from flask_login import LoginManager, login_user, current_user, login_required, 
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from datetime import datetime
+import openai
 import mysql.connector  # Para conexão com o banco de dados MySQL
 import bcrypt  # Para criptografia de senhas
 import os  # Manipulação de sistema operacional e variáveis de ambiente
@@ -138,12 +139,12 @@ def extrair_texto_pdf(pdf_path):
         with open(pdf_path, 'rb') as file:
             reader = PyPDF2.PdfReader(file)
             text = ''
-            # Log para verificar se o PDF foi lido corretamente
+            # Verifica se o PDF possui páginas
             if not reader.pages:
                 app.logger.error(f"PDF {pdf_path} não possui páginas ou não pode ser lido.")
                 return ''
 
-            # Aqui ele vai pegar e verificar todas as páginas do PDF
+            # Extrai texto de todas as páginas do PDF
             for page_num, page in enumerate(reader.pages, start=1):
                 page_text = page.extract_text() or ''
                 if not page_text:
@@ -784,6 +785,21 @@ def view_pdf(doc_id):
 @app.route('/summarize_pdf/<int:doc_id>', methods=['GET'])
 def summarize_pdf(doc_id):
     try:
+        # Verificar modelos disponíveis na API
+        response = requests.get(
+            "https://api.openai.com/v1/models",
+            headers={
+                "Authorization": f"Bearer {API_KEY}"
+            }
+        )
+
+        if response.status_code == 200:
+            models = response.json()
+            app.logger.info(f"Modelos disponíveis: {models}")
+        else:
+            app.logger.error(f"Erro ao listar modelos: {response.status_code}, {response.text}")
+            return jsonify({"error": "Erro ao listar modelos disponíveis na API"}), 500
+
         # Conecta com o banco de dados
         conn = connect_to_db()
         cursor = conn.cursor(dictionary=True)
@@ -810,43 +826,34 @@ def summarize_pdf(doc_id):
         # Extrai texto do PDF
         pdf_texto = extrair_texto_pdf(pdf_path)
         if not pdf_texto.strip():
-            app.logger.error(f"Texto do PDF {pdf_path} tá vazio ou não foi possível extrair.")
+            app.logger.error(f"Texto do PDF {pdf_path} está vazio ou não foi possível extrair.")
             return jsonify({"error": "Não foi possível extrair o texto do PDF"}), 500
 
-        # Faz a requisição para a API do ChatGPT
-        response = requests.post(
-            "https://api.openai.com/v1/chat/completions", 
-            headers={
-                "Authorization": f"Bearer {API_KEY}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "gpt-3.5-turbo",
-                "messages": [
-                    {"role": "system", "content": "Bora dale."},
-                    {"role": "user", "content": f"Resuma pra mim o seguinte texto:\n{pdf_texto}"}
-                ],
-                "max_tokens": 150  # Limite de tokens no resumo
-            }
+        # Faz a requisição para a API usando a biblioteca OpenAI
+        openai.api_key = API_KEY
+
+        # Utiliza o modelo disponível
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "Você é um assistente útil."},
+                {"role": "user", "content": f"Resuma o seguinte texto:\n{pdf_texto}"}
+            ],
+            max_tokens=150
         )
 
         # Processa a resposta da API
-        if response.status_code != 200:
-            app.logger.error(f"Erro na chamada da API do ChatGPT: {response.text}")
-            return jsonify({"error": "Erro ao comunicar com a API do ChatGPT"}), 500
-
-        summary = response.json().get('choices', [{}])[0].get('message', {}).get('content', '').strip()
+        summary = response['choices'][0]['message']['content'].strip()
         if not summary:
             app.logger.warning(f"Resumo vazio retornado pela API do ChatGPT para o documento {doc_id}.")
             return jsonify({"error": "Não foi possível resumir o texto do PDF"}), 500
 
-        app.logger.info(f"Resumo do PDF gerado pelo CHATGPT pro documento {doc_id}.")
+        app.logger.info(f"Resumo do PDF gerado pelo ChatGPT para o documento {doc_id}.")
         return jsonify({"summary": summary})
 
     except Exception as e:
         app.logger.error(f"Erro na rota /summarize_pdf para o documento {doc_id}: {e}")
         return jsonify({"error": "Erro interno no servidor"}), 500
-
 
 # Executar o app Flask
 if __name__ == '__main__':
