@@ -39,11 +39,20 @@
                 <p><strong>Redator:</strong> {{ doc['redator'] }}</p>
                 <div class="result-actions">
                     <a href="/view_pdf/{{ doc['cddocument'] }}" class="view-button" target="_blank">Visualizar PDF</a>
-                    <a href="/summarize_pdf/{{ doc['cddocument'] }}" class="summarize-button" target="_blank">Resumir PDF</a>
+                    <button class="summarize-button" onclick="app.summarizePdf({{ doc['cddocument'] }})">Resumir PDF</button>
                 </div>
             </li>
             {% endfor %}
         </ul>
+    </div>
+
+    <!-- Modal para exibição do resumo -->
+    <div id="summary-modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close-modal" onclick="app.closeModal()">&times;</span>
+            <h2>Resumo do Documento</h2>
+            <p id="summary-text"></p>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
@@ -52,6 +61,37 @@
         function submitSearch() {
             document.getElementById('search-form').submit();
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const app = {
+                openModal: function () {
+                    document.getElementById('summary-modal').style.display = 'block';
+                },
+                closeModal: function () {
+                    document.getElementById('summary-modal').style.display = 'none';
+                },
+                summarizePdf: function (docId) {
+                    this.openModal();
+                    document.getElementById('summary-text').innerText = 'Carregando...';
+
+                    fetch(`/summarize_pdf/${docId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            const summaryText = document.getElementById('summary-text');
+                            if (data.summary) {
+                                summaryText.innerText = data.summary;
+                            } else if (data.error) {
+                                summaryText.innerText = `Erro: ${data.error}`;
+                            }
+                        })
+                        .catch(err => {
+                            document.getElementById('summary-text').innerText = `Erro ao buscar o resumo: ${err.message}`;
+                        });
+                }
+            };
+
+            window.app = app;
+        });
     </script>
 </body>
 </html>
