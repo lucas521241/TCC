@@ -106,6 +106,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Funções para ver e resumir PDF
     const app = {
+        openModal: function () {
+            document.getElementById('summary-modal').style.display = 'block';
+        },
+        closeModal: function () {
+            document.getElementById('summary-modal').style.display = 'none';
+        },
         viewPdf: function (url) {
             const pdfViewer = document.getElementById('app-pdf-viewer');
             if (pdfViewer) {
@@ -114,20 +120,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         },
         summarizePdf: function (docId) {
-            console.log("Summarizing PDF with docId:", docId);
+            this.openModal();
+            const summaryText = document.getElementById('summary-text');
+            summaryText.innerText = 'Carregando...';
+
             fetch(`/summarize_pdf/${docId}`)
                 .then(response => response.json())
                 .then(data => {
-                    const pdfViewer = document.getElementById('app-pdf-viewer');
-                    if (pdfViewer) {
-                        pdfViewer.querySelector('p').innerText = data.summary || 'Erro ao resumir o PDF.';
+                    if (data.summary) {
+                        summaryText.innerText = data.summary;
+                    } else if (data.error) {
+                        summaryText.innerText = `Erro: ${data.error}`;
                     }
                 })
-                .catch(() => {
-                    const pdfViewer = document.getElementById('app-pdf-viewer');
-                    if (pdfViewer) {
-                        pdfViewer.querySelector('p').innerText = 'Erro ao se conectar com o servidor.';
-                    }
+                .catch(err => {
+                    summaryText.innerText = `Erro ao buscar o resumo: ${err.message}`;
                 });
         }
     };
