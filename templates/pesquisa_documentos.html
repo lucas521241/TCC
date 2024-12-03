@@ -39,7 +39,8 @@
                 <p><strong>Redator:</strong> {{ doc['redator'] }}</p>
                 <div class="result-actions">
                     <a href="/view_pdf/{{ doc['cddocument'] }}" class="view-button" target="_blank">Visualizar PDF</a>
-                    <button class="summarize-button" onclick="app.summarizePdf({{ doc['cddocument'] }})">Resumir PDF</button>
+                   <!-- <a href="/summarize_pdf/{{ doc['cddocument'] }}" class="summarize-button" target="_blank">Resumir PDF</a> -->
+                   <a href="javascript:void(0);" class="summarize-button" data-doc-id="{{ doc['cddocument'] }}">Resumir PDF</a>
                 </div>
             </li>
             {% endfor %}

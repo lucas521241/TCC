@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Animação para botões
     const buttons = document.querySelectorAll('button');
-    
     if (buttons) {
         buttons.forEach(button => {
             button.addEventListener('mouseover', () => {
@@ -22,95 +22,78 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Animação para botões de envio
-    const submitBtn = document.getElementById('submit-btn');
-    if (submitBtn) {
-        submitBtn.addEventListener('click', (event) => {
-            event.preventDefault();
-            submitBtn.innerHTML = 'Enviando...';
-            submitBtn.disabled = true;
+    // Configurações para botões específicos
+    configureButton('submit-btn', 'Enviando...', 'Enviar para Aprovação', 'Documento criado e enviado para aprovação!', '#2196F3', 'document-form');
+    configureButton('cancel-btn', 'Enviando...', 'Cancelar Documento', 'Solicitação de cancelamento enviada!', '#FF5722', 'cancel-document-form');
+    configureButton('review-btn', 'Enviando...', 'Revisar Documento', 'Documento enviado para revisão!', '#FFC107', 'review-document-form');
 
-            const distinctMessage = document.createElement('div');
-            distinctMessage.innerHTML = 'Documento criado e enviado para aprovação!';
-            setMessageStyle(distinctMessage, '#2196F3');
+    /**
+     * Configura botões com mensagens e formulários específicos
+     * @param {string} buttonId - ID do botão
+     * @param {string} sendingText - Texto ao enviar
+     * @param {string} defaultText - Texto padrão do botão
+     * @param {string} messageText - Texto da mensagem exibida
+     * @param {string} bgColor - Cor de fundo da mensagem
+     * @param {string} formId - ID do formulário a ser enviado
+     */
+    function configureButton(buttonId, sendingText, defaultText, messageText, bgColor, formId) {
+        const button = document.getElementById(buttonId);
+        if (button) {
+            button.addEventListener('click', (event) => {
+                event.preventDefault();
+                button.innerHTML = sendingText;
+                button.disabled = true;
 
-            document.body.appendChild(distinctMessage);
+                const messageElement = document.createElement('div');
+                messageElement.innerHTML = messageText;
+                setMessageStyle(messageElement, bgColor);
 
-            setTimeout(() => {
-                distinctMessage.remove();
-                submitBtn.innerHTML = 'Enviar para Aprovação';
-                submitBtn.disabled = false;
-                document.getElementById('document-form').submit();
-            }, 3000);
-        });
+                document.body.appendChild(messageElement);
+
+                setTimeout(() => {
+                    messageElement.remove();
+                    button.innerHTML = defaultText;
+                    button.disabled = false;
+                    document.getElementById(formId).submit();
+                }, 3000);
+            });
+        }
     }
 
-    // Animação para botões de cancelamento
-    const cancelBtn = document.getElementById('cancel-btn');
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', (event) => {
-            event.preventDefault();
-            cancelBtn.innerHTML = 'Enviando...';
-            cancelBtn.disabled = true;
-
-            const cancelMessage = document.createElement('div');
-            cancelMessage.innerHTML = 'Solicitação de cancelamento enviada!';
-            setMessageStyle(cancelMessage, '#FF5722');
-
-            document.body.appendChild(cancelMessage);
-
-            setTimeout(() => {
-                cancelMessage.remove();
-                cancelBtn.innerHTML = 'Cancelar Documento';
-                cancelBtn.disabled = false;
-                document.getElementById('cancel-document-form').submit();
-            }, 3000);
-        });
-    }
-
-    // Animação para botões de revisão
-    const reviewBtn = document.getElementById('review-btn');
-    if (reviewBtn) {
-        reviewBtn.addEventListener('click', (event) => {
-            event.preventDefault();
-            reviewBtn.innerHTML = 'Enviando...';
-            reviewBtn.disabled = true;
-
-            const reviewMessage = document.createElement('div');
-            reviewMessage.innerHTML = 'Documento enviado para revisão!';
-            setMessageStyle(reviewMessage, '#FFC107');
-
-            document.body.appendChild(reviewMessage);
-
-            setTimeout(() => {
-                reviewMessage.remove();
-                reviewBtn.innerHTML = 'Revisar Documento';
-                reviewBtn.disabled = false;
-                document.getElementById('review-document-form').submit();
-            }, 3000);
-        });
-    }
-
-    // Função para mostrar mensagem de sucesso
+    // Define estilo de mensagens
     function setMessageStyle(messageElement, bgColor) {
         messageElement.style.position = 'fixed';
-        messageElement.style.top = '50%';
-        messageElement.style.left = '50%';
-        messageElement.style.transform = 'translate(-50%, -50%)';
-        messageElement.style.backgroundColor = bgColor;
+        messageElement.style.top = '0';
+        messageElement.style.left = '0';
+        messageElement.style.width = '100vw';
+        messageElement.style.height = '100vh';
+        messageElement.style.display = 'flex';
+        messageElement.style.justifyContent = 'center';
+        messageElement.style.alignItems = 'center';
+        messageElement.style.backgroundColor = `${bgColor}cc`; // Fundo com transparência
         messageElement.style.color = 'white';
         messageElement.style.padding = '20px';
         messageElement.style.borderRadius = '5px';
         messageElement.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.1)';
+        messageElement.style.zIndex = '9999';
+        messageElement.style.textAlign = 'center';
     }
 
-    // Funções para ver e resumir PDF
+    // Funções para visualizar e resumir PDFs
     const app = {
         openModal: function () {
-            document.getElementById('summary-modal').style.display = 'block';
+            const modal = document.getElementById('summary-modal');
+            if (modal) {
+                modal.style.display = 'flex';
+                modal.style.justifyContent = 'center';
+                modal.style.alignItems = 'center';
+            }
         },
         closeModal: function () {
-            document.getElementById('summary-modal').style.display = 'none';
+            const modal = document.getElementById('summary-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
         },
         viewPdf: function (url) {
             const pdfViewer = document.getElementById('app-pdf-viewer');
@@ -141,4 +124,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Adiciona `app` ao escopo global
     window.app = app;
+
+    // Captura cliques nos links de resumo
+    document.addEventListener('click', (event) => {
+        const target = event.target.closest('.summarize-button');
+        if (target) {
+            event.preventDefault();
+            const docId = target.getAttribute('data-doc-id');
+            if (docId) {
+                app.summarizePdf(docId);
+            }
+        }
+    });
 });
