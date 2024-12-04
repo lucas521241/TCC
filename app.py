@@ -843,7 +843,7 @@ def summarize_pdf(doc_id):
             app.logger.error(f"Texto do PDF {pdf_path} está vazio ou não foi possível extrair.")
             return jsonify({"error": "Não foi possível extrair o texto do PDF"}), 500
         
-                # Faz a requisição para a API usando a função com retry
+        # Faz a requisição para a API usando a função com retry
         openai.api_key = API_KEY
 
         # Usar a função com retry
