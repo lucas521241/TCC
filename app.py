@@ -14,8 +14,7 @@ import os  # Manipulação de sistema operacional e variáveis de ambiente
 import secrets  # Para geração de chaves seguras
 import PyPDF2  # Biblioteca para manipulação de PDFs
 import logging  # Configuração de logs para depuração e auditoria
-import requests  # Para realizar requisições HTTP
-import json # Pra manipular dados no formato JSON
+import time
 
 # Inicializando a aplicação Flask
 app = Flask(__name__)
@@ -152,6 +151,7 @@ def extrair_texto_pdf(pdf_path):
                     app.logger.warning(f"Texto da página {page_num} do PDF {pdf_path} está vazio.")
                 text += page_text
             app.logger.info(f"Texto extraído do PDF {pdf_path} com sucesso.")
+            app.logger.info(f"Texto extraído do PDF: {text}")
             return text
     except Exception as e:
         app.logger.error(f"Erro ao tentar extrair texto do PDF {pdf_path}: {e}")
@@ -160,6 +160,34 @@ def extrair_texto_pdf(pdf_path):
 # Função para verificar se o arquivo que foi feito upload é PDF (só um check a mais)
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']    
+
+MAX_RETRIES = 3  # Número máximo de tentativas
+RETRY_DELAY = 2  # Tempo inicial de espera antes de tentar novamente
+
+def call_openai_api_with_retry(messages, model="gpt-4o-mini"):
+    retries = 0
+    while retries < MAX_RETRIES:
+        try:
+            # Chama a API do OpenAI
+            response = openai.ChatCompletion.create(
+                model=model,
+                messages=messages,
+                temperature=1,
+                max_tokens=60
+            )
+            return response
+        except openai.error.RateLimitError as e:
+            retries += 1
+            delay = RETRY_DELAY * (2 ** retries)  # Exponencial backoff
+            app.logger.warning(f"Limite de requisições atingido. Tentando novamente em {delay} segundos...")
+            time.sleep(delay)
+        except Exception as e:
+            app.logger.error(f"Erro na API: {e}")
+            raise
+
+    # Se falhar após várias tentativas
+    app.logger.error("Limite de requisições atingido repetidamente. Tente novamente mais tarde.")
+    raise openai.error.RateLimitError("Limite de requisições atingido.")
 
 
 # Configuração básica do logger que estamos usando pra pegar e registrar e armazenar erros/registros importantes da aplicação
@@ -782,7 +810,7 @@ def view_pdf(doc_id):
     return send_from_directory(app.config['UPLOAD_FOLDER'], pdf_filename)
 
 
-# Rota para resumir o PDF usando a API do ChatGPT (real-time)
+# Rota para resumir o PDF usando a API do ChatGPT
 @app.route('/summarize_pdf/<int:doc_id>', methods=['GET'])
 def summarize_pdf(doc_id):
     try:
@@ -814,25 +842,17 @@ def summarize_pdf(doc_id):
         if not pdf_texto.strip():
             app.logger.error(f"Texto do PDF {pdf_path} está vazio ou não foi possível extrair.")
             return jsonify({"error": "Não foi possível extrair o texto do PDF"}), 500
-
-        # Faz a requisição para a API usando a biblioteca OpenAI
+        
+                # Faz a requisição para a API usando a função com retry
         openai.api_key = API_KEY
 
-        print(pdf_texto)
-
-        # Utiliza o modelo disponível
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "user", "content": f"Resuma o seguinte texto e me explique brevemente:{pdf_texto}"}
-            ],
-            temperature = 1,
-            max_tokens=60
+        # Usar a função com retry
+        response = call_openai_api_with_retry(
+            messages=[{"role": "user", "content": f"Resuma o seguinte texto em poucas palavras:{pdf_texto}"}]
         )
 
         # Processa a resposta da API
         summary = response['choices'][0]['message']['content'].strip()
-        print("Resumo:", summary)
 
         if not summary:
             app.logger.warning(f"Resumo vazio retornado pela API do ChatGPT para o documento {doc_id}.")
@@ -842,7 +862,7 @@ def summarize_pdf(doc_id):
         return jsonify({"summary": summary})
 
     except Exception as e:
-        app.logger.error(f"Erro na rota /summarize_pdf para o documento {doc_id}: {e}")
+        app.logger.error(f"Erro inesperado na rota /summarize_pdf para o documento {doc_id}: {e}")
         return jsonify({"error": "Erro interno no servidor"}), 500
 
 
