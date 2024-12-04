@@ -854,6 +854,10 @@ def summarize_pdf(doc_id):
         # Processa a resposta da API
         summary = response['choices'][0]['message']['content'].strip()
 
+        # Loga o número de tokens usados
+        tokens_used = response['usage']['total_tokens']
+        app.logger.info(f"Tokens usados na chamada API: {tokens_used}")
+
         if not summary:
             app.logger.warning(f"Resumo vazio retornado pela API do ChatGPT para o documento {doc_id}.")
             return jsonify({"error": "Não foi possível resumir o texto do PDF"}), 500
@@ -862,8 +866,20 @@ def summarize_pdf(doc_id):
         return jsonify({"summary": summary})
 
     except Exception as e:
-        app.logger.error(f"Erro inesperado na rota /summarize_pdf para o documento {doc_id}: {e}")
+        app.logger.error(f"Erro na rota /summarize_pdf para o documento {doc_id}: {e}")
         return jsonify({"error": "Erro interno no servidor"}), 500
+
+    except openai.error.RateLimitError as e:
+        app.logger.error(f"Limite de requisições atingido: {e}")
+        return jsonify({"error": "Limite de requisições atingido, tente novamente mais tarde."}), 429
+
+    except openai.error.APIError as e:
+        app.logger.error(f"Erro na API do OpenAI: {e}")
+        return jsonify({"error": "Erro na API do OpenAI"}), 500
+
+    except Exception as e:
+        app.logger.error(f"Erro inesperado: {e}")
+        return jsonify({"error": "Erro inesperado"}), 500
 
 
 # Executar o app Flask
