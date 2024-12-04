@@ -786,21 +786,6 @@ def view_pdf(doc_id):
 @app.route('/summarize_pdf/<int:doc_id>', methods=['GET'])
 def summarize_pdf(doc_id):
     try:
-        # Verificar modelos disponíveis na API
-        response = requests.get(
-            "https://api.openai.com/v1/models",
-            headers={
-                "Authorization": f"Bearer {API_KEY}"
-            }
-        )
-
-        if response.status_code == 200:
-            models = response.json()
-            app.logger.info(f"Modelos disponíveis: {models}")
-        else:
-            app.logger.error(f"Erro ao listar modelos: {response.status_code}, {response.text}")
-            return jsonify({"error": "Erro ao listar modelos disponíveis na API"}), 500
-
         # Conecta com o banco de dados
         conn = connect_to_db()
         cursor = conn.cursor(dictionary=True)
@@ -833,18 +818,22 @@ def summarize_pdf(doc_id):
         # Faz a requisição para a API usando a biblioteca OpenAI
         openai.api_key = API_KEY
 
+        print(pdf_texto)
+
         # Utiliza o modelo disponível
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "Você é um assistente útil."},
-                {"role": "user", "content": f"Resuma o seguinte texto:\n{pdf_texto}"}
+                {"role": "user", "content": f"Resuma o seguinte texto e me explique brevemente:{pdf_texto}"}
             ],
-            max_tokens=150
+            temperature = 1,
+            max_tokens=60
         )
 
         # Processa a resposta da API
         summary = response['choices'][0]['message']['content'].strip()
+        print("Resumo:", summary)
+
         if not summary:
             app.logger.warning(f"Resumo vazio retornado pela API do ChatGPT para o documento {doc_id}.")
             return jsonify({"error": "Não foi possível resumir o texto do PDF"}), 500
@@ -855,6 +844,7 @@ def summarize_pdf(doc_id):
     except Exception as e:
         app.logger.error(f"Erro na rota /summarize_pdf para o documento {doc_id}: {e}")
         return jsonify({"error": "Erro interno no servidor"}), 500
+
 
 # Executar o app Flask
 if __name__ == '__main__':
