@@ -10,7 +10,7 @@ A escolha do GED como tema de projeto foi baseada em:
 - **Relevância do tema**: A gestão de documentos é essencial para qualquer organização, proporcionando maior controle, segurança e redução de custos operacionais.
 
 ## Diagrama de Fluxo de Processo
-![Diagrama de Fluxo](https://ibb.co/Tkt8TWR)
+![Diagrama de Fluxo](Diagrama_TCC_1.png)
 
 ## Funcionalidades Principais
 
