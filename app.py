@@ -14,7 +14,8 @@ import os  # Manipulação de sistema operacional e variáveis de ambiente
 import secrets  # Para geração de chaves seguras
 import PyPDF2  # Biblioteca para manipulação de PDFs
 import logging  # Configuração de logs para depuração e auditoria
-import time
+import time #Criar loop e timer
+import google.generativeai as genai #Biblioteca do GEMINI pra fazer resumo de PDF
 
 # Inicializando a aplicação Flask
 app = Flask(__name__)
@@ -34,13 +35,16 @@ dotenv_path = os.path.join(base_dir, "pdf_view.env")
 # Carregue a variavel pro ambiente
 load_dotenv(dotenv_path)
 
-# Chave de API do OpenAI
-# Usada para integração com a API do ChatGPT
-API_KEY = os.getenv("OPENAI_API_KEY")
+# Configuração da API GEMINI Usada para RESUMIR PDF
+API_KEY = os.getenv("GENAI_API_KEY")  # Variável no .env
 if not API_KEY:
     app.logger.error("API_KEY não foi carregada. Verifique o arquivo pdf_view.env e o uso do load_dotenv.")
 else:
-    app.logger.info("API_KEY carregada com sucesso.")
+    genai.configure(api_key=API_KEY)  # Configura a API do GEMINI
+    app.logger.info("API_KEY para GEMINI carregada com sucesso.")
+    
+# Modelo do GEMINI a ser utilizado
+MODEL_NAME = "gemini-pro"
 
 # Configurando o Flask-Login para gerenciar autenticação de usuários
 login_manager = LoginManager()
@@ -810,7 +814,7 @@ def view_pdf(doc_id):
     return send_from_directory(app.config['UPLOAD_FOLDER'], pdf_filename)
 
 
-# Rota para resumir o PDF usando a API do ChatGPT
+# Rota para resumir o PDF usando a API do GEMINI
 @app.route('/summarize_pdf/<int:doc_id>', methods=['GET'])
 def summarize_pdf(doc_id):
     try:
@@ -843,45 +847,29 @@ def summarize_pdf(doc_id):
             app.logger.error(f"Texto do PDF {pdf_path} está vazio ou não foi possível extrair.")
             return jsonify({"error": "Não foi possível extrair o texto do PDF"}), 500
         
-        # Faz a requisição para a API usando a função com retry
-        openai.api_key = API_KEY
-
-        # Usar a função com retry
-        response = call_openai_api_with_retry(
-            messages=[{"role": "user", "content": f"Resuma o seguinte texto em poucas palavras:{pdf_texto}"}]
-        )
+        # Chamada à API GEMINI para gerar o resumo
+        try:
+            model = genai.GenerativeModel(MODEL_NAME)  # Cria o modelo
+            response = model.generate_content(
+                f"Resuma o seguinte texto em poucas palavras: {pdf_text}"
+            )
+        except Exception as e:
+            app.logger.error(f"Erro ao chamar a API GEMINI: {e}")
+            return jsonify({"error": "Erro ao conectar à API GEMINI"}), 500
 
         # Processa a resposta da API
-        summary = response['choices'][0]['message']['content'].strip()
-
-        # Loga o número de tokens usados
-        tokens_used = response['usage']['total_tokens']
-        app.logger.info(f"Tokens usados na chamada API: {tokens_used}")
-
+        summary = response.text.strip()  # Obtém o texto do resumo gerado
         if not summary:
-            app.logger.warning(f"Resumo vazio retornado pela API do ChatGPT para o documento {doc_id}.")
+            app.logger.warning(f"Resumo vazio retornado pela API GEMINI para o documento {doc_id}.")
             return jsonify({"error": "Não foi possível resumir o texto do PDF"}), 500
 
-        app.logger.info(f"Resumo do PDF gerado pelo ChatGPT para o documento {doc_id}.")
+        app.logger.info(f"Resumo do PDF gerado pelo GEMINI para o documento {doc_id}.")
         return jsonify({"summary": summary})
 
     except Exception as e:
-        app.logger.error(f"Erro na rota /summarize_pdf para o documento {doc_id}: {e}")
+        app.logger.error(f"Erro inesperado na rota /summarize_pdf para o documento {doc_id}: {e}")
         return jsonify({"error": "Erro interno no servidor"}), 500
-
-    except openai.error.RateLimitError as e:
-        app.logger.error(f"Limite de requisições atingido: {e}")
-        return jsonify({"error": "Limite de requisições atingido, tente novamente mais tarde."}), 429
-
-    except openai.error.APIError as e:
-        app.logger.error(f"Erro na API do OpenAI: {e}")
-        return jsonify({"error": "Erro na API do OpenAI"}), 500
-
-    except Exception as e:
-        app.logger.error(f"Erro inesperado: {e}")
-        return jsonify({"error": "Erro inesperado"}), 500
-
-
+        
 # Executar o app Flask
 if __name__ == '__main__':
     app.run(debug=True)
