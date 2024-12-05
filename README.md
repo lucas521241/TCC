@@ -9,6 +9,9 @@ A escolha do GED como tema de projeto foi baseada em:
 - **Desenvolvimento de competências**: O projeto abrange o aprendizado de novas tecnologias, frameworks web e metodologias ágeis.
 - **Relevância do tema**: A gestão de documentos é essencial para qualquer organização, proporcionando maior controle, segurança e redução de custos operacionais.
 
+## Diagrama de Fluxo de Processo
+![Diagrama de Fluxo](https://ibb.co/Tkt8TWR)
+
 ## Funcionalidades Principais
 
 1. **Criação de documentos**: Suporta formatos como PDF além de controle de versão e categorização.
