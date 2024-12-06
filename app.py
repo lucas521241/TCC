@@ -165,33 +165,33 @@ def extrair_texto_pdf(pdf_path):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']    
 
-MAX_RETRIES = 3  # Número máximo de tentativas
-RETRY_DELAY = 2  # Tempo inicial de espera antes de tentar novamente
+# MAX_RETRIES = 3  # Número máximo de tentativas
+# RETRY_DELAY = 2  # Tempo inicial de espera antes de tentar novamente
 
-def call_openai_api_with_retry(messages, model="gpt-4o-mini"):
-    retries = 0
-    while retries < MAX_RETRIES:
-        try:
-            # Chama a API do OpenAI
-            response = openai.ChatCompletion.create(
-                model=model,
-                messages=messages,
-                temperature=1,
-                max_tokens=60
-            )
-            return response
-        except openai.error.RateLimitError as e:
-            retries += 1
-            delay = RETRY_DELAY * (2 ** retries)  # Exponencial backoff
-            app.logger.warning(f"Limite de requisições atingido. Tentando novamente em {delay} segundos...")
-            time.sleep(delay)
-        except Exception as e:
-            app.logger.error(f"Erro na API: {e}")
-            raise
+# def call_openai_api_with_retry(messages, model="gpt-4o-mini"):
+#     retries = 0
+#     while retries < MAX_RETRIES:
+#         try:
+#             # Chama a API do OpenAI
+#             response = openai.ChatCompletion.create(
+#                 model=model,
+#                 messages=messages,
+#                 temperature=1,
+#                 max_tokens=60
+#             )
+#             return response
+#         except openai.error.RateLimitError as e:
+#             retries += 1
+#             delay = RETRY_DELAY * (2 ** retries)  # Exponencial backoff
+#             app.logger.warning(f"Limite de requisições atingido. Tentando novamente em {delay} segundos...")
+#             time.sleep(delay)
+#         except Exception as e:
+#             app.logger.error(f"Erro na API: {e}")
+#             raise
 
-    # Se falhar após várias tentativas
-    app.logger.error("Limite de requisições atingido repetidamente. Tente novamente mais tarde.")
-    raise openai.error.RateLimitError("Limite de requisições atingido.")
+#     # Se falhar após várias tentativas
+#     app.logger.error("Limite de requisições atingido repetidamente. Tente novamente mais tarde.")
+#     raise openai.error.RateLimitError("Limite de requisições atingido.")
 
 
 # Configuração básica do logger que estamos usando pra pegar e registrar e armazenar erros/registros importantes da aplicação
