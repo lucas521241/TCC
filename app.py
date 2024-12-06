@@ -7,15 +7,15 @@ from flask_login import LoginManager, login_user, current_user, login_required, 
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from datetime import datetime
-import openai
 import mysql.connector  # Para conexão com o banco de dados MySQL
 import bcrypt  # Para criptografia de senhas
 import os  # Manipulação de sistema operacional e variáveis de ambiente
 import secrets  # Para geração de chaves seguras
 import PyPDF2  # Biblioteca para manipulação de PDFs
 import logging  # Configuração de logs para depuração e auditoria
-import time #Criar loop e timer
-import google.generativeai as genai #Biblioteca do GEMINI pra fazer resumo de PDF
+import time # Criar loop e timer
+import google.generativeai as genai # Biblioteca do GEMINI pra fazer resumo de PDF
+import openai # Biblioteca da OPENAI pro CHATGPT (caso não funcionar GEMINI)
 
 # Inicializando a aplicação Flask
 app = Flask(__name__)
@@ -851,7 +851,7 @@ def summarize_pdf(doc_id):
         try:
             model = genai.GenerativeModel(MODEL_NAME)  # Cria o modelo
             response = model.generate_content(
-                f"Resuma o seguinte texto em poucas palavras: {pdf_text}"
+                f"Resuma o seguinte texto em poucas palavras: {pdf_texto}"
             )
         except Exception as e:
             app.logger.error(f"Erro ao chamar a API GEMINI: {e}")
