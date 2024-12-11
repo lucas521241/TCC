@@ -27,8 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
     configureButton('cancel-btn', 'Enviando...', 'Cancelar Documento', 'Solicitação de cancelamento enviada!', '#FF5722', 'cancel-document-form');
     configureButton('review-btn', 'Enviando...', 'Revisar Documento', 'Documento enviado para revisão!', '#FFC107', 'review-document-form');
     configureButton('save-changes-btn', 'Salvando...', 'Salvar Alterações', 'Alterações salvas com sucesso!', '#4CAF50', 'edit-user-form', '/home' );
-    configureButton('approve-btn', 'Enviando...', 'Aprovar', 'Aprovado com sucesso!', '#4CAF50', 'aprovar-reprovar-form');
-    configureButton('reject-btn', 'Enviando...', 'Reprovar', 'Reprovado com sucesso!', '#FF5722', 'aprovar-reprovar-form');
+    configureButton('approve-btn', 'Enviando...', 'Aprovar', 'Aprovado com sucesso!', '#4CAF50', 'aprovar-reprovar-form', 'form-{{ tarefa.id }}');
+    configureButton('reject-btn', 'Enviando...', 'Reprovar', 'Reprovado com sucesso!', '#FF5722', 'aprovar-reprovar-form', 'form-{{ tarefa.id }}');
 
     /**
      * Configura botões com mensagens e formulários específicos
@@ -39,34 +39,38 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {string} bgColor - Cor de fundo da mensagem
      * @param {string} formId - ID do formulário a ser enviado
      */
+    
     // Configura botões com mensagens e formulários específicos
-    function configureButton(buttonId, sendingText, defaultText, messageText, bgColor, formId, redirectUrl = null) {
+    function configureButton(buttonId, sendingText, defaultText, messageText, bgColor, formId) {
         const button = document.getElementById(buttonId);
         if (button) {
             button.addEventListener('click', (event) => {
-                event.preventDefault();
+                event.preventDefault(); // Impede o envio padrão do formulário momentaneamente
+
+                // Atualiza o texto e desativa o botão
                 button.innerHTML = sendingText;
                 button.disabled = true;
 
+                // Exibe a mensagem de confirmação
                 const messageElement = document.createElement('div');
                 messageElement.innerHTML = messageText;
                 setMessageStyle(messageElement, bgColor);
-
                 document.body.appendChild(messageElement);
 
+                // Aguarda 2 segundos antes de submeter o formulário
                 setTimeout(() => {
-                    messageElement.remove();
-                    button.innerHTML = defaultText;
-                    button.disabled = false;
-                    document.getElementById(formId).submit();
-
-                    if (redirectUrl) {
-                        window.location.href = redirectUrl;
+                    messageElement.remove(); // Remove a mensagem da tela
+                    const form = document.getElementById(formId);
+                    if (form) {
+                        form.submit(); // Submete o formulário após o delay
+                    } else {
+                        console.error('Formulário não encontrado:', formId);
                     }
-                }, 3000);
+                }, 2000);
             });
         }
     }
+
 
     // Define estilo de mensagens
     function setMessageStyle(messageElement, bgColor) {
@@ -86,6 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
         messageElement.style.zIndex = '9999';
         messageElement.style.textAlign = 'center';
     }
+
+    
 
     // Funções para visualizar e resumir PDFs
     const app = {

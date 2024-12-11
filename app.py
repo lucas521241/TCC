@@ -770,7 +770,7 @@ def aprovar_reprovar(atividade_id):
     conn.close()
     
     # Retorna para o Meu Portal
-    return redirect(url_for('meu_portal'))
+    return redirect(url_for('home'))
 
 # Rota para a pesquisa de documentos
 @app.route('/pesquisa_documentos', methods=['GET'])
