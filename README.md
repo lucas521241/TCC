@@ -59,6 +59,7 @@ O desenvolvimento foi dividido nas seguintes fases:
 
 1. **Inicializar o MYSQL**: Incializar o servidor no MYSQL workbench
 2. **Inicializar Aplicação Flask**: python app.py
+3. **Inicializar testes**: pytest para testar todas os testes (no arquivo teste/test_app.py) e pytest --cov=app para medir a cobertura 
 
 ## Considerações Finais
 
