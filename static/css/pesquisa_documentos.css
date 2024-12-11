@@ -145,6 +145,15 @@ body {
     background-color: #218838;
 }
 
+.download-button {
+    background-color: #ffc107; /* Cor amarela */
+    color: #333; /* Cor do texto */
+}
+
+.download-button:hover {
+    background-color: #e0a800; /* Cor amarela escura */
+}
+
 /* PDF Viewer */
 #app-pdf-viewer {
     max-width: 800px;
