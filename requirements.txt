@@ -8,5 +8,5 @@ bcrypt
 requests
 secrets
 pillow
-openai
 google-generativeai
+pytest 
