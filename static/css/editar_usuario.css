@@ -57,6 +57,24 @@ input[type="password"]:focus {
     box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
 }
 
+/* Mensagem de sucesso */
+div.success-message {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(76, 175, 80, 0.9); /* Cor de fundo com transparência */
+    color: white;
+    font-size: 1.5rem;
+    text-align: center;
+    z-index: 9999;
+    animation: fadeIn 0.5s ease-out;
+}
+
 button {
     width: 100%;
     padding: 10px;
