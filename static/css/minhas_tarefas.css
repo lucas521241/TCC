@@ -49,6 +49,19 @@ body {
     border-radius: 0 4px 4px 0;
 }
 
+/* Estilo para o link "Bem-vindo, Nome do Usuário" */
+.user-name-link {
+    cursor: pointer;
+    text-decoration: underline;
+    color: white;  /* Cor do link */
+    margin-right: 20px; /* Espaço à direita do nome */
+    font-weight: bold;
+}
+
+.user-name-link:hover {
+    color: #00b3ff; /* Cor ao passar o mouse */
+}
+
 .toolbar button:hover {
     background-color: #004494;
 }
