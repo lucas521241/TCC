@@ -44,8 +44,8 @@
                     <p class="task-solicitante"><strong>  Solicitante: </strong> {{ tarefa.solicitante }}</p>
                 </div>
                 <form action="/aprovar_reprovar/{{ tarefa.id }}" method="POST" style="display: inline;">
-                    <button type="submit" name="status" value="APROVADO" class="approve-button">Aprovar</button>
-                    <button type="submit" name="status" value="REPROVADO" class="reject-button">Reprovar</button>
+                    <button type="submit" name="status" value="APROVADO" class="approve-button" id="approve-btn">Aprovar</button>
+                    <button type="submit" name="status" value="REPROVADO" class="reject-button" id="reject-btn">Reprovar</button>
                     <a href="/visualizar_pdf/{{ tarefa.id }}" class="view-pdf-button" target="_blank">Visualizar PDF</a>
                 </form>
             </li>
