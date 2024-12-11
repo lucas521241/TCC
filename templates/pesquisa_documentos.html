@@ -15,7 +15,7 @@
             <a href="/meu-portal">Meu Portal</a>
         </div>
         <div class="toolbar-info">
-            <a href="/editar-usuario" class="user-name-link">Bem-vindo, {{ current_user.name_user }}</a>
+            <a href="/editar_usuario" class="user-name-link">Bem-vindo, {{ current_user.name_user }}</a>
             <form id="search-form" action="/pesquisa_documentos" method="get" class="search-toolbar-container" onsubmit="event.preventDefault(); submitSearch()">
                 <input type="text" placeholder="Pesquisar documentos..." class="search-toolbar" name="document" id="search-input">
                 <button type="submit" class="icon-search-toolbar"><i class="fas fa-search"></i></button>

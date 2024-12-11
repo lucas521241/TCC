@@ -15,6 +15,36 @@ body {
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
 }
 
+.workflow-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Espaço entre o label e o seletor */
+    margin-bottom: 20px; /* Espaço inferior */
+}
+
+.workflow-label {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333; /* Cor do texto */
+}
+
+.workflow-select {
+    padding: 10px;
+    font-size: 14px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #fff;
+    color: #333;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    transition: border-color 0.3s, box-shadow 0.3s; /* Suaviza as interações */
+}
+
+.workflow-select:focus {
+    border-color: #007bff; /* Azul no foco */
+    box-shadow: 0px 0px 6px rgba(0, 123, 255, 0.5);
+    outline: none;
+}
+
 .toolbar a {
     color: white;
     text-decoration: none;
