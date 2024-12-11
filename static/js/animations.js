@@ -27,6 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
     configureButton('cancel-btn', 'Enviando...', 'Cancelar Documento', 'Solicitação de cancelamento enviada!', '#FF5722', 'cancel-document-form');
     configureButton('review-btn', 'Enviando...', 'Revisar Documento', 'Documento enviado para revisão!', '#FFC107', 'review-document-form');
     configureButton('save-changes-btn', 'Salvando...', 'Salvar Alterações', 'Alterações salvas com sucesso!', '#4CAF50', 'edit-user-form', '/home' );
+    configureButton('approve-btn', 'Enviando...', 'Aprovar', 'Aprovado com sucesso!', '#4CAF50', 'aprovar-reprovar-form');
+    configureButton('reject-btn', 'Enviando...', 'Reprovar', 'Reprovado com sucesso!', '#FF5722', 'aprovar-reprovar-form');
 
     /**
      * Configura botões com mensagens e formulários específicos
