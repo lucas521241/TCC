@@ -53,6 +53,19 @@ body {
     background-color: #004494;
 }
 
+/* Estilo para o link "Bem-vindo, Nome do Usuário" */
+.user-name-link {
+    cursor: pointer;
+    text-decoration: underline;
+    color: white;  /* Cor do link */
+    margin-right: 20px; /* Espaço à direita do nome */
+    font-weight: bold;
+}
+
+.user-name-link:hover {
+    color: #00b3ff; /* Cor ao passar o mouse */
+}
+
 h1 {
     text-align: center;
     margin-top: 20px;
