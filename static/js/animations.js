@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     configureButton('submit-btn', 'Enviando...', 'Enviar para Aprovação', 'Documento criado e enviado para aprovação!', '#2196F3', 'document-form');
     configureButton('cancel-btn', 'Enviando...', 'Cancelar Documento', 'Solicitação de cancelamento enviada!', '#FF5722', 'cancel-document-form');
     configureButton('review-btn', 'Enviando...', 'Revisar Documento', 'Documento enviado para revisão!', '#FFC107', 'review-document-form');
+    configureButton('save-changes-btn', 'Salvando...', 'Salvar Alterações', 'Alterações salvas com sucesso!', '#4CAF50', 'edit-user-form', '/home' );
 
     /**
      * Configura botões com mensagens e formulários específicos
@@ -36,7 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
      * @param {string} bgColor - Cor de fundo da mensagem
      * @param {string} formId - ID do formulário a ser enviado
      */
-    function configureButton(buttonId, sendingText, defaultText, messageText, bgColor, formId) {
+    // Configura botões com mensagens e formulários específicos
+    function configureButton(buttonId, sendingText, defaultText, messageText, bgColor, formId, redirectUrl = null) {
         const button = document.getElementById(buttonId);
         if (button) {
             button.addEventListener('click', (event) => {
@@ -55,6 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     button.innerHTML = defaultText;
                     button.disabled = false;
                     document.getElementById(formId).submit();
+
+                    if (redirectUrl) {
+                        window.location.href = redirectUrl;
+                    }
                 }, 3000);
             });
         }
