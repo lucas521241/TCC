@@ -2,7 +2,7 @@
 # Flask é o framework principal que to usando pra criar as rotas da aplicação
 # Flask-Login é muito importante por que preciso gerenciar as autenticações dos usuários.
 # dotenv foi importante pra conseguir configurar a API do chatGPT para resumir os PDF.
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_file
 from flask_login import LoginManager, login_user, current_user, login_required, UserMixin
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
@@ -16,6 +16,7 @@ import logging  # Configuração de logs para depuração e auditoria
 import time # Criar loop e timer
 import google.generativeai as genai # Biblioteca do GEMINI pra fazer resumo de PDF
 import openai # Biblioteca da OPENAI pro CHATGPT (caso não funcionar GEMINI)
+
 
 # Inicializando a aplicação Flask
 app = Flask(__name__)
@@ -812,6 +813,44 @@ def view_pdf(doc_id):
 
     # Retorna o arquivo PDF ao usuário usando o caminho correto
     return send_from_directory(app.config['UPLOAD_FOLDER'], pdf_filename)
+
+# Rota para fazer Download do PDF na Pesquisa
+@app.route('/download_pdf/<int:doc_id>', methods=['GET'])
+def download_pdf(doc_id):
+    try:
+        # Conectar ao banco de dados
+        conn = connect_to_db()
+        cursor = conn.cursor(dictionary=True)
+
+        # Consulta o nome do arquivo associado ao CDDOCUMENT
+        cursor.execute("SELECT FILENAME FROM DCFILE WHERE CDDOCUMENT = %s", (doc_id,))
+        file_data = cursor.fetchone()
+
+        # Fecha a conexão com o banco de dados
+        cursor.close()
+        conn.close()
+
+        # Verifica se o arquivo foi encontrado no banco de dados
+        if not file_data:
+            app.logger.warning(f"Arquivo não encontrado no banco de dados para CDDOCUMENT: {doc_id}")
+            return jsonify({"error": "Arquivo não encontrado"}), 404
+
+        # Define o caminho completo do arquivo PDF
+        pdf_filename = file_data['FILENAME']
+        pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], pdf_filename)
+
+        # Verifica se o arquivo existe no diretório local
+        if not os.path.exists(pdf_path):
+            app.logger.warning(f"Arquivo {pdf_filename} não encontrado no diretório: {app.config['UPLOAD_FOLDER']}")
+            return jsonify({"error": f"Arquivo {pdf_filename} não encontrado no servidor."}), 404
+
+        # Retorna o arquivo PDF para download
+        return send_file(pdf_path, as_attachment=True)
+
+    except Exception as e:
+        # Log de erro para falhas inesperadas
+        app.logger.error(f"Erro ao realizar o download do arquivo para CDDOCUMENT: {doc_id}. Erro: {str(e)}")
+        return jsonify({"error": "Erro interno ao tentar realizar o download do arquivo."}), 500
 
 
 # Rota para resumir o PDF usando a API do GEMINI
