@@ -2,7 +2,7 @@
 # Flask é o framework principal que to usando pra criar as rotas da aplicação
 # Flask-Login é muito importante por que preciso gerenciar as autenticações dos usuários.
 # dotenv foi importante pra conseguir configurar a API do chatGPT para resumir os PDF.
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory
 from flask_login import LoginManager, login_user, current_user, login_required, UserMixin
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
@@ -294,6 +294,42 @@ def register_route():
 
     # Caso a requisição for tipo GET, retorna pro cadastro
     return render_template('cadastro.html')
+
+# Rota para editar o usuário conforme necessidade.
+@app.route('/editar_usuario', methods=['GET', 'POST'])
+@login_required  # Garante que apenas usuários autenticados possam acessar
+def editar_usuario():
+    if request.method == 'POST':
+        # Obtém os dados do formulário
+        novo_nome = request.form['nome']
+        senha = request.form['senha']
+        confirmar_senha = request.form['confirmar_senha']
+
+        # Verifica se as senhas são iguais
+        if senha != confirmar_senha:
+            flash("As senhas não coincidem. Tente novamente.", "danger")
+            return redirect(url_for('editar_usuario'))
+
+        # Criptografa a nova senha
+        hashed_password = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt())
+
+        # Atualiza os dados no banco de dados
+        conn = connect_to_db()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE USERS SET NAME_USER = %s, PASSWORD = %s WHERE ID = %s",
+            (novo_nome, hashed_password, current_user.id)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        flash("Informações atualizadas com sucesso!", "success")
+        return redirect(url_for('home'))
+
+    # Requisição GET: exibe o formulário de edição com os dados atuais do usuário
+    return render_template('editar_usuario.html', nome_atual=current_user.name_user)
+
 
 # Rota inicial do portal de inicialização de processos (cadastro, revisão e cancelamento de documentos)
 @app.route('/meu-portal')
@@ -817,40 +853,32 @@ def view_pdf(doc_id):
 # Rota para fazer Download do PDF na Pesquisa
 @app.route('/download_pdf/<int:doc_id>', methods=['GET'])
 def download_pdf(doc_id):
-    try:
-        # Conectar ao banco de dados
-        conn = connect_to_db()
-        cursor = conn.cursor(dictionary=True)
+    # Conecta no banco para obter o nome do arquivo
+    conn = connect_to_db()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT FILENAME FROM DCFILE WHERE CDDOCUMENT = %s", (doc_id,))
+    file_data = cursor.fetchone()
+    cursor.close()
+    conn.close()
 
-        # Consulta o nome do arquivo associado ao CDDOCUMENT
-        cursor.execute("SELECT FILENAME FROM DCFILE WHERE CDDOCUMENT = %s", (doc_id,))
-        file_data = cursor.fetchone()
+    # Verifica se o arquivo foi encontrado
+    if not file_data:
+        app.logger.warning(f"PDF não encontrado para o CDDOCUMENT: {doc_id}")
+        flash("Arquivo não encontrado!", "warning")
+        return redirect(url_for('pesquisa_documentos'))  # Retorna à página de pesquisa
 
-        # Fecha a conexão com o banco de dados
-        cursor.close()
-        conn.close()
+    # Define o caminho do arquivo
+    pdf_filename = file_data['FILENAME']
+    pdf_path = app.config['UPLOAD_FOLDER']
 
-        # Verifica se o arquivo foi encontrado no banco de dados
-        if not file_data:
-            app.logger.warning(f"Arquivo não encontrado no banco de dados para CDDOCUMENT: {doc_id}")
-            return jsonify({"error": "Arquivo não encontrado"}), 404
+    # Verifica se o arquivo existe
+    if not os.path.exists(os.path.join(pdf_path, pdf_filename)):
+        app.logger.warning(f"Arquivo {pdf_filename} não encontrado no diretório.")
+        flash("Arquivo não disponível no servidor.", "warning")
+        return redirect(url_for('pesquisa_documentos'))
 
-        # Define o caminho completo do arquivo PDF
-        pdf_filename = file_data['FILENAME']
-        pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], pdf_filename)
-
-        # Verifica se o arquivo existe no diretório local
-        if not os.path.exists(pdf_path):
-            app.logger.warning(f"Arquivo {pdf_filename} não encontrado no diretório: {app.config['UPLOAD_FOLDER']}")
-            return jsonify({"error": f"Arquivo {pdf_filename} não encontrado no servidor."}), 404
-
-        # Retorna o arquivo PDF para download
-        return send_file(pdf_path, as_attachment=True)
-
-    except Exception as e:
-        # Log de erro para falhas inesperadas
-        app.logger.error(f"Erro ao realizar o download do arquivo para CDDOCUMENT: {doc_id}. Erro: {str(e)}")
-        return jsonify({"error": "Erro interno ao tentar realizar o download do arquivo."}), 500
+    # Faz o download do arquivo
+    return send_from_directory(pdf_path, pdf_filename, as_attachment=True)
 
 
 # Rota para resumir o PDF usando a API do GEMINI
